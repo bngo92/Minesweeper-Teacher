@@ -6,5 +6,5 @@
 *.ear
 
 bin/
+gen/
 .settings/
-proguard-project.txt
