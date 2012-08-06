@@ -47,8 +47,6 @@ public class Tile {
 	}
 	
 	public boolean reveal() {
-		if (mRevealed)
-			return true;
 		mRevealed = true;
 		int id;
 		switch (mMines) {
@@ -81,9 +79,11 @@ public class Tile {
 			break;
 		default:
 			id = R.drawable.mine;
-			return false;
+			break;
 		}
 		mBitmap = BitmapFactory.decodeResource(mRes, id);
+		if (mMines == -1)
+			return false;
 		return true;
 	}
 
