@@ -21,16 +21,11 @@ public class Game extends Activity {
 		game = (GameView) findViewById(R.id.gameView1);
 		time = (TextView) findViewById(R.id.textViewTime);
 		count = (TextView) findViewById(R.id.textViewCount);
-		
-		updateCount(null);
+		game.setTextView(time, count);
+		game.newGame();
     }
     
     public void newGame(View view) {
     	game.newGame();
-		updateCount(null);
-    }
-    
-    public void updateCount(View view) {
-    	count.setText("" + game.getCount());
     }
 }

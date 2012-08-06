@@ -15,18 +15,22 @@ import android.widget.TextView;
 
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private GameThread mThread;
-	private int maxX;
-	int maxY;
+
+	private ArrayList<ArrayList<Tile>> mGrid;	
+	private ArrayList<Tile> mMines;
 	
 	private int width = 9;
 	private int height = 9;
 	private int mines = 10;
 	private int size;
-	private int mCount;
-	private boolean mActive;
-	private ArrayList<ArrayList<Tile>> mGrid;	
-	private ArrayList<Tile> mMines;
 	private Random rand;
+	private int maxX;
+	int maxY;
+	
+	private int mCount;
+	private boolean mStart;
+	private boolean mActive;
+	private long mStartTime;
 	
 	TextView tvtime;
 	TextView tvcount;
@@ -49,6 +53,15 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	public int getCount() {
 		return mCount;
 	}
+	
+	public void setTextView(TextView time, TextView count) {
+		tvtime = time;
+		tvcount = count;
+	}
+	
+	public void updateCount() {
+		tvcount.setText("" + mCount);
+	}
 
 	public void initGame() {
 		getHolder().addCallback(this);
@@ -68,7 +81,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				mGrid.get(i).add(new Tile(getResources(), i*size, j*size));
 		}
 		
-		newGame();
 	}
 	
 	public void newGame() {
@@ -101,9 +113,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 		mCount = width * height - mines;
 		mActive = true;
+		mStart = false;
+		tvtime.setText("" + 0);
+		updateCount();
 	}
 	
 	public void doDraw(Canvas canvas) {
+		updateTime();
 		canvas.drawColor(Color.BLACK);
 		synchronized (mGrid) {
 			for (ArrayList<Tile> arrayList : mGrid)
@@ -139,19 +155,26 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		
 		//if (!mThread.getRunning())
 			//mThread.setRunning(true);
+		if (!mStart) {
+			mStart = true;
+			mStartTime = System.currentTimeMillis();
+		}
 		
 		synchronized (mGrid) {
 			if (!mGrid.get(x).get(y).isRevealed()) {
-				if (mGrid.get(x).get(y).isZero())
-					revealZero(x, y);
-				
 				if (mGrid.get(x).get(y).reveal()) {
 					mCount--;
+					
+					if (mGrid.get(x).get(y).isZero())
+						revealZero(x, y);
+					
+					updateCount();
 					if (mCount == 0) {
 						//mThread.setRunning(false);
 						mActive = false;
 					}
 				}
+				
 				else {
 					for (Tile tile : mMines)
 						tile.reveal();
@@ -165,18 +188,22 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 	
 	public void revealZero(int x, int y) {
-		mGrid.get(x).get(y).reveal();
-		
 		for (int i = Math.max(x-1, 0); i < Math.min(x+2, width); i++) {
 			for (int j = Math.max(y-1, 0); j < Math.min(y+2, width); j++) {
 				if (!mGrid.get(i).get(j).isRevealed()) {
-					if (mGrid.get(i).get(j).isZero())
-						revealZero(i, j);
-					
 					mGrid.get(i).get(j).reveal();
 					mCount--;
+					
+					if (mGrid.get(i).get(j).isZero())
+						revealZero(i, j);
 				}
 			}
 		}
+	}
+	
+	public void updateTime() {
+		if (mStart && mActive)
+			//tvtime.setText("" + (System.currentTimeMillis() - mStartTime) / 1000)
+			;
 	}
 }
