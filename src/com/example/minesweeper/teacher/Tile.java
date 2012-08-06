@@ -16,10 +16,15 @@ public class Tile {
 	
 	public Tile(Resources res, int x, int y) {
 		mRes = res;
-		mBitmap = BitmapFactory.decodeResource(mRes, R.drawable.mined);
 		mX = x;
 		mY = y;
+		reset();
+	}
+	
+	public void reset() {
+		mBitmap = BitmapFactory.decodeResource(mRes, R.drawable.mined);
 		mRevealed = false;
+		mMines = 0;
 	}
 	
 	public void doDraw(Canvas canvas) {

@@ -26,47 +26,41 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private boolean mActive;
 	private ArrayList<ArrayList<Tile>> mGrid;	
 	private ArrayList<Tile> mMines;
+	private Random rand;
 	
 	TextView tvtime;
 	TextView tvcount;
 	
 	public GameView(Context context) {
 		super(context);
-		size = BitmapFactory.decodeResource(getResources(), R.drawable.mined).getWidth();
-		
-		getHolder().addCallback(this);
-		mThread = new GameThread(this);
-		
-		newGame();
+		initGame();
 	}	
 	
 	public GameView(Context context, AttributeSet attrs) {
 		super(context, attrs);
-		size = BitmapFactory.decodeResource(getResources(), R.drawable.mined).getWidth();
-		
-		getHolder().addCallback(this);
-		mThread = new GameThread(this);
-		
-		newGame();
+		initGame();
 	}
 	
 	public GameView(Context context, AttributeSet attrs, int defStyle) {
 		super(context, attrs, defStyle);
-		size = BitmapFactory.decodeResource(getResources(), R.drawable.mined).getWidth();
-		
-		getHolder().addCallback(this);
-		mThread = new GameThread(this);
-		
-		newGame();
+		initGame();
 	}
 	
 	public int getCount() {
 		return mCount;
 	}
-	
-	public void newGame() {
+
+	public void initGame() {
+		getHolder().addCallback(this);
+		mThread = new GameThread(this);
+		
 		mGrid = new ArrayList<ArrayList<Tile>>(width);
-		mMines = new ArrayList<Tile>();
+		mMines = new ArrayList<Tile>(mines);
+
+		size = BitmapFactory.decodeResource(getResources(), R.drawable.mined).getWidth();
+		maxX = width;
+		maxY = height;
+		rand = new Random();
 		
 		for (int i = 0; i < width; i++) {
 			mGrid.add(new ArrayList<Tile>(height));
@@ -74,10 +68,18 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				mGrid.get(i).add(new Tile(getResources(), i*size, j*size));
 		}
 		
-		Random random = new Random();
+		newGame();
+	}
+	
+	public void newGame() {
+		for (ArrayList<Tile> arrayList : mGrid)
+			for (Tile tile : arrayList)
+				tile.reset();
+		mMines.clear();
+		
 		while (mMines.size() < mines) {
-			int x = random.nextInt(width);
-			int y = random.nextInt(height);
+			int x = rand.nextInt(width);
+			int y = rand.nextInt(height);
 			if (!mGrid.get(x).get(y).isMine()) {
 				mGrid.get(x).get(y).setMine(-1);
 				mMines.add(mGrid.get(x).get(y));
@@ -96,10 +98,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				mGrid.get(i).get(j).setMine(nMines);
 			}
 		}
-		
-		mCount = width * height - mMines.size();;
-		maxX = width;
-		maxY = height;
+
+		mCount = width * height - mines;
 		mActive = true;
 	}
 	
@@ -125,9 +125,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 	public void surfaceDestroyed(SurfaceHolder arg0) {
 		if (mThread.isAlive()) {
-			if (mThread.isAlive()) {
-				mThread.setRunning(false);
-			}
+			mThread.setRunning(false);
 		}
 	}
 	
