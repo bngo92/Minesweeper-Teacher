@@ -7,6 +7,7 @@ import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.os.Handler;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -30,7 +31,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private int mCount;
 	private boolean mStart;
 	private boolean mActive;
-	private long mStartTime;
+	private Handler mTimer;
+	private int mSeconds;
 	
 	TextView tvtime;
 	TextView tvcount;
@@ -62,10 +64,29 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	public void updateCount() {
 		tvcount.setText("" + mCount);
 	}
+	
+	public void startTimer() {
+		mSeconds = 0;
+		mTimer.removeCallbacks(updateTimer);
+		mTimer.postDelayed(updateTimer, 1000);
+	}
+	
+	public void stopTimer() {
+		mTimer.removeCallbacks(updateTimer);
+	}
+	
+	private Runnable updateTimer = new Runnable() {
+		public void run() {
+			mSeconds++;
+			tvtime.setText("" + mSeconds);
+			mTimer.postDelayed(updateTimer, 1000);
+		}
+	};
 
 	public void initGame() {
 		getHolder().addCallback(this);
 		mThread = new GameThread(this);
+		mTimer = new Handler();
 		
 		mGrid = new ArrayList<ArrayList<Tile>>(width);
 		mMines = new ArrayList<Tile>(mines);
@@ -119,7 +140,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 	
 	public void doDraw(Canvas canvas) {
-		updateTime();
 		canvas.drawColor(Color.BLACK);
 		synchronized (mGrid) {
 			for (ArrayList<Tile> arrayList : mGrid)
@@ -157,7 +177,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			//mThread.setRunning(true);
 		if (!mStart) {
 			mStart = true;
-			mStartTime = System.currentTimeMillis();
+			startTimer();
 		}
 		
 		synchronized (mGrid) {
@@ -180,6 +200,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 						tile.reveal();
 					//mThread.setRunning(false);
 					mActive = false;
+					stopTimer();
 				}
 			} 
 		}
@@ -199,11 +220,5 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				}
 			}
 		}
-	}
-	
-	public void updateTime() {
-		if (mStart && mActive)
-			//tvtime.setText("" + (System.currentTimeMillis() - mStartTime) / 1000)
-			;
 	}
 }
