@@ -13,6 +13,7 @@ public class Tile {
 	private Resources mRes;
 	private Bitmap mBitmap;
 	private boolean mRevealed;
+	private boolean mFlagged;
 	
 	public Tile(Resources res, int x, int y) {
 		mRes = res;
@@ -24,6 +25,7 @@ public class Tile {
 	public void reset() {
 		mBitmap = BitmapFactory.decodeResource(mRes, R.drawable.mined);
 		mRevealed = false;
+		mFlagged = false;
 		mMines = 0;
 	}
 	
@@ -45,6 +47,25 @@ public class Tile {
 	
 	public boolean isRevealed() {
 		return mRevealed;
+	}
+	
+	public void toggleFlag() {
+		if (mRevealed)
+			return;
+		
+		mFlagged = !mFlagged;
+		if (mFlagged)
+			mBitmap = BitmapFactory.decodeResource(mRes, R.drawable.minef);
+		else
+			mBitmap = BitmapFactory.decodeResource(mRes, R.drawable.mined);
+	}
+	
+	public boolean isFlagged() {
+		return mFlagged;
+	}
+	
+	public int getMines() {
+		return mMines;
 	}
 	
 	public void setMine(int mines) {

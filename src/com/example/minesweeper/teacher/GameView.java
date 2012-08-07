@@ -9,6 +9,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.os.Handler;
 import android.util.AttributeSet;
+import android.view.View;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -33,6 +34,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private boolean mActive;
 	private Handler mTimer;
 	private int mSeconds;
+	
+	int mX;
+	int mY;
 	
 	TextView tvtime;
 	TextView tvcount;
@@ -101,7 +105,78 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			for (int j = 0; j < height; j++)
 				mGrid.get(i).add(new Tile(getResources(), i*size, j*size));
 		}
+
+		this.setOnTouchListener(new OnTouchListener() {
+
+			public boolean onTouch(View v, MotionEvent event) {
+				mX = (int) event.getX() / size;
+				mY = (int) event.getY() / size;
+
+				if (!mActive || mX >= maxX || mY >= maxY)
+					return true;
+
+				if (!mStart) {
+					mStart = true;
+					startTimer();
+				}
+				
+				return false;
+			}
+			
+		});
 		
+		this.setOnClickListener(new OnClickListener() {
+
+			public void onClick(View v) {
+				synchronized (mGrid) {
+					Tile tile = mGrid.get(mX).get(mY);
+					if (!tile.isRevealed() && !tile.isFlagged()) {
+						if (tile.reveal()) {
+							mCount--;
+							
+							if (tile.isZero())
+								revealZero(mX, mY);
+							
+							if (mCount == 0) {
+								stopTimer();
+								mActive = false;
+							}
+						}
+						
+						else {
+							for (Tile mine : mMines)
+								mine.reveal();
+							mActive = false;
+							stopTimer();
+						}
+					} else if (tile.isRevealed() && tile.getMines() == countFlags(mX, mY)) {
+						for (int i = Math.max(mX-1, 0); i < Math.min(mX+2, width); i++) {
+							for (int j = Math.max(mY-1, 0); j < Math.min(mY+2, width); j++) {
+								Tile t = mGrid.get(i).get(j);
+								if (!t.isRevealed() && !t.isFlagged()) {
+									t.reveal();
+									mCount--;
+									
+									if (t.isZero())
+										revealZero(i, j);
+								}
+							}
+						}
+					}
+				}
+				updateCount();
+			}
+			
+		});
+		
+		this.setOnLongClickListener(new OnLongClickListener() {
+
+			public boolean onLongClick(View v) {
+				mGrid.get(mX).get(mY).toggleFlag();
+				return true;
+			}
+			
+		});
 	}
 	
 	public void newGame() {
@@ -160,65 +235,34 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 
 	public void surfaceDestroyed(SurfaceHolder arg0) {
-		if (mThread.isAlive()) {
+		if (mThread.isAlive())
 			mThread.setRunning(false);
-		}
-	}
-	
-	@Override 
-	public boolean onTouchEvent(MotionEvent event) {
-		int x = (int) event.getX() / size;
-		int y = (int) event.getY() / size;
-		
-		if (!mActive || x >= maxX || y >= maxY)
-			return super.onTouchEvent(event);
-		
-		//if (!mThread.getRunning())
-			//mThread.setRunning(true);
-		if (!mStart) {
-			mStart = true;
-			startTimer();
-		}
-		
-		synchronized (mGrid) {
-			if (!mGrid.get(x).get(y).isRevealed()) {
-				if (mGrid.get(x).get(y).reveal()) {
-					mCount--;
-					
-					if (mGrid.get(x).get(y).isZero())
-						revealZero(x, y);
-					
-					updateCount();
-					if (mCount == 0) {
-						//mThread.setRunning(false);
-						mActive = false;
-					}
-				}
-				
-				else {
-					for (Tile tile : mMines)
-						tile.reveal();
-					//mThread.setRunning(false);
-					mActive = false;
-					stopTimer();
-				}
-			} 
-		}
-			
-		return super.onTouchEvent(event);
 	}
 	
 	public void revealZero(int x, int y) {
 		for (int i = Math.max(x-1, 0); i < Math.min(x+2, width); i++) {
 			for (int j = Math.max(y-1, 0); j < Math.min(y+2, width); j++) {
-				if (!mGrid.get(i).get(j).isRevealed()) {
-					mGrid.get(i).get(j).reveal();
+				Tile tile = mGrid.get(i).get(j);
+				if (!tile.isRevealed() && !tile.isFlagged()) {
+					tile.reveal();
 					mCount--;
 					
-					if (mGrid.get(i).get(j).isZero())
+					if (tile.isZero())
 						revealZero(i, j);
 				}
 			}
 		}
 	}
+	
+	public int countFlags(int x, int y) {
+		int count = 0;
+		for (int i = Math.max(x-1, 0); i < Math.min(x+2, width); i++) {
+			for (int j = Math.max(y-1, 0); j < Math.min(y+2, width); j++) {
+				if (mGrid.get(i).get(j).isFlagged())
+					count++;
+			}
+		}
+		return count;
+	}
+
 }
