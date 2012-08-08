@@ -136,7 +136,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 			public boolean onLongClick(View v) {
 				mGrid.get(mX).get(mY).toggleFlag();
-				invalidate();
 				return true;
 			}
 			
@@ -152,7 +151,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				else
 					reveal(mX, mY);
 				
-				updateCount();
 				if (mCount == 0) {
 					stopTimer();
 					mActive = false;
@@ -217,16 +215,17 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				mine.reveal();
 		} else {
 			mCount--;
+			updateCount();
 			if (tile.isZero())
 				revealSurrounding(x, y);
 		}
 	}
-	
+
 	public void revealSurrounding(int x, int y) {
 		for (int i = Math.max(x-1, 0); i < Math.min(x+2, width); i++)
 			for (int j = Math.max(y-1, 0); j < Math.min(y+2, width); j++)
 				reveal(i, j);
-	}
+	}	
 	
 	public int countFlags(int x, int y) {
 		int count = 0;
@@ -263,7 +262,73 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	    if (mThread.isAlive()) {
 	        mThread.setRunning(false);
 	    }
-	    
+	}
+	
+	public class Pair {
+		Pair(int x, int y) { this.x = x; this.y = y; }
+		int x;
+		int y;
+	}
+	
+	public void hint() {
+		// 1. Check if the number of adjacent mines equals the number of adjacent flags
+		// Uncover them.
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				if (!mGrid.get(i).get(j).isZero() && mGrid.get(i).get(j).isRevealed() && mGrid.get(i).get(j).getMines() == countFlags(i, j)) {
+					int temp = mCount;
+					revealSurrounding(i, j);
+					if (temp != mCount)
+						return;
+				}
+			}
+		}
+		
+		// 2. Check if the number of adjacent mines equals the number of uncovered tiles
+		// Flag them
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				if (mGrid.get(i).get(j).isZero() || mGrid.get(i).get(j).isFlagged() || 
+						!mGrid.get(i).get(j).isRevealed())
+					continue;
+				
+				if (mGrid.get(i).get(j).getMines() == countRevealed(i, j)) {
+					boolean success = false;
+					for (int ii = Math.max(i-1, 0); ii < Math.min(i+2, width); ii++)
+						for (int jj = Math.max(j-1, 0); jj < Math.min(j+2, height); jj++)
+							if (!mGrid.get(ii).get(jj).isRevealed() && !mGrid.get(ii).get(jj).isFlagged()) {
+								mGrid.get(ii).get(jj).toggleFlag();
+								success = true;
+							}
+					if (success)
+						return;
+				}
+			}
+		}
+		
+		// 3. Guess
+		ArrayList<Pair> a = new ArrayList<Pair>(width*height);
+		for (int i = 0; i < width; i++)
+			for (int j = 0; j < height; j++)
+				if (!mGrid.get(i).get(j).isRevealed())
+					a.add(new Pair(i, j));
+		int n = rand.nextInt(a.size());
+		int x = a.get(n).x;
+		int y = a.get(n).y;
+		reveal(x, y);
+		a.remove(n);
+		return;
+	}
+	
+	public int countRevealed(int x, int y) {
+		int count = 0;
+		for (int i = Math.max(x-1, 0); i < Math.min(x+2, width); i++) {
+			for (int j = Math.max(y-1, 0); j < Math.min(y+2, width); j++) {
+				if (!mGrid.get(i).get(j).isRevealed())
+					count++;
+			}
+		}
+		return count;
 	}
 	
 }

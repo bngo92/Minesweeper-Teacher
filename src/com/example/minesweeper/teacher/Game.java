@@ -28,4 +28,8 @@ public class Game extends Activity {
     public void newGame(View view) {
     	game.newGame();
     }
+    
+    public void hint(View view) {
+    	game.hint();
+    }
 }
