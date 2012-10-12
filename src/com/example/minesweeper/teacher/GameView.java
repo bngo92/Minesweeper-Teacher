@@ -1,6 +1,7 @@
 package com.example.minesweeper.teacher;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
 
 import android.content.Context;
@@ -16,43 +17,46 @@ import android.widget.TextView;
 
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private GameThread mThread;
+	private Random rand;
 	
 	private ArrayList<ArrayList<Tile>> mGrid;	
 	private ArrayList<Tile> mMines;
 	
-	private int width = 9;
-	private int height = 9;
-	private int mines = 10;
+	private int height;
+	private int width;
+	private int mines;
 	private int size;
-	private Random rand;
-	private int maxX;
-	int maxY;
 	
 	private int mCount;
 	private boolean mStart;
 	private boolean mActive;
 	private Handler mTimer;
 	private int mSeconds;
-	
-	int mX;
-	int mY;
+
+	int mR;
+	int mC;
+	int offset_row;
+	int offset_col;
 	
 	TextView tvtime;
 	TextView tvcount;
 	
 	public GameView(Context context) {
 		super(context);
-		initGame();
 	}	
 	
 	public GameView(Context context, AttributeSet attrs) {
 		super(context, attrs);
-		initGame();
 	}
 	
 	public GameView(Context context, AttributeSet attrs, int defStyle) {
 		super(context, attrs, defStyle);
-		initGame();
+	}
+	
+	public void setSize(int[] size) {
+		height = size[0];
+		width = size[1];
+		mines = size[2];
 	}
 	
 	public void setTextView(TextView time, TextView count) {
@@ -96,15 +100,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		mTimer = new Handler();
 
 		size = BitmapFactory.decodeResource(getResources(), R.drawable.mined).getWidth();
-		maxX = width;
-		maxY = height;
 
 		mMines = new ArrayList<Tile>(mines);
-		mGrid = new ArrayList<ArrayList<Tile>>(width);
-		for (int i = 0; i < width; i++) {
-			mGrid.add(new ArrayList<Tile>(height));
-			for (int j = 0; j < height; j++)
-				mGrid.get(i).add(new Tile(getResources()));
+		mGrid = new ArrayList<ArrayList<Tile>>(height);
+		for (int r = 0; r < height; r++) {
+			mGrid.add(new ArrayList<Tile>(width));
+			for (int c = 0; c < width; c++)
+				mGrid.get(r).add(new Tile(getResources()));
 		}
 
 		// Handle input events
@@ -112,11 +114,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 			public boolean onTouch(View v, MotionEvent event) {
 				// Store x and y coordinates for the following listener
-				mX = (int) event.getX() / size;
-				mY = (int) event.getY() / size;
+				mR = (int) event.getX() / size;
+				mC = (int) event.getY() / size;
 
 				// Ignore touch if the game isn't active or the touch is out of bounds
-				if (!mActive || mX >= maxX || mY >= maxY)
+				if (!mActive || mR >= height || mC >= width)
 					return true;
 
 				// Start time during the first touch
@@ -135,7 +137,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		this.setOnLongClickListener(new OnLongClickListener() {
 
 			public boolean onLongClick(View v) {
-				mGrid.get(mX).get(mY).toggleFlag();
+				mGrid.get(mR).get(mC).toggleFlag();
 				return true;
 			}
 			
@@ -144,12 +146,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		this.setOnClickListener(new OnClickListener() {
 
 			public void onClick(View v) {
-				Tile tile = mGrid.get(mX).get(mY);
+				Tile tile = mGrid.get(mR).get(mC);
 				
-				if (tile.isRevealed() && tile.getMines() == countFlags(mX, mY))
-					revealSurrounding(mX, mY);
+				if (tile.isRevealed() && tile.getMines() == countFlags(mR, mC))
+					revealSurrounding(mR, mC);
 				else
-					reveal(mX, mY);
+					reveal(mR, mC);
 				
 				if (mCount == 0) {
 					stopTimer();
@@ -168,31 +170,36 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				tile.reset();
 		
 		// Randomize location of mines
-		while (mMines.size() < mines) {
-			int x = rand.nextInt(width);
-			int y = rand.nextInt(height);
-			if (!mGrid.get(x).get(y).isMine()) {
-				mGrid.get(x).get(y).setMine();
-				mMines.add(mGrid.get(x).get(y));
-			}	
+		ArrayList<Pair> grid = new ArrayList<Pair>(height * width);
+		for (int r = 0; r < height; r++) {
+			for (int c = 0; c < width; c++) {
+				grid.add(new Pair(r, c));
+			}
+		}
+		
+		Collections.shuffle(grid);
+		for (int i = 0; i < mines; i++) {
+			Pair p = grid.get(i);
+			mGrid.get(p.first).get(p.second).setMine();
+			mMines.add(mGrid.get(p.first).get(p.second));
 		}
 		
 		// Count mines
-		for (int i = 0; i < width; i++) {
-			for (int j = 0; j < height; j++) {
-				if (mGrid.get(i).get(j).isMine())
+		for (int r = 0; r < height; r++) {
+			for (int c = 0; c < width; c++) {
+				if (mGrid.get(r).get(c).isMine())
 					continue;
 				
 				int nMines = 0;
-				for (int ii = Math.max(i-1, 0); ii < Math.min(i+2, width); ii++)
-					for (int jj = Math.max(j-1, 0); jj < Math.min(j+2, height); jj++)
-						if (mGrid.get(ii).get(jj).isMine())
+				for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, height); rr++)
+					for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, width); cc++)
+						if (mGrid.get(rr).get(cc).isMine())
 							nMines++;
-				mGrid.get(i).get(j).setMines(nMines);
+				mGrid.get(r).get(c).setMines(nMines);
 			}
 		}
 
-		mCount = width * height - mines;
+		mCount = height * width - mines;
 		mActive = true;
 		mStart = false;
 		
@@ -201,8 +208,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		updateCount();
 	}
 	
-	public void reveal(int x, int y) {
-		Tile tile = mGrid.get(x).get(y);
+	public void reveal(int r, int c) {
+		Tile tile = mGrid.get(r).get(c);
 		
 		if (tile.isFlagged() || tile.isRevealed())
 			return;
@@ -217,20 +224,20 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			mCount--;
 			updateCount();
 			if (tile.isZero())
-				revealSurrounding(x, y);
+				revealSurrounding(r, c);
 		}
 	}
 
-	public void revealSurrounding(int x, int y) {
-		for (int i = Math.max(x-1, 0); i < Math.min(x+2, width); i++)
-			for (int j = Math.max(y-1, 0); j < Math.min(y+2, width); j++)
+	public void revealSurrounding(int r, int c) {
+		for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++)
+			for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++)
 				reveal(i, j);
 	}	
 	
-	public int countFlags(int x, int y) {
+	public int countFlags(int r, int c) {
 		int count = 0;
-		for (int i = Math.max(x-1, 0); i < Math.min(x+2, width); i++) {
-			for (int j = Math.max(y-1, 0); j < Math.min(y+2, width); j++) {
+		for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++) {
+			for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++) {
 				if (mGrid.get(i).get(j).isFlagged())
 					count++;
 			}
@@ -239,10 +246,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 
 	public void doDraw(Canvas canvas) {
-		for (int i = 0; i < width; i++)
-			for (int j = 0; j < height; j++)
-				canvas.drawBitmap(mGrid.get(i).get(j).getBitmap(),
-						i * size , j * size, null);
+		for (int r = offset_row; r < width; r++)
+			for (int c = offset_col; c < height; c++)
+				canvas.drawBitmap(mGrid.get(r).get(c).getBitmap(),
+						r * size , c * size, null);
 	}
 
 	public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
@@ -264,20 +271,15 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	    }
 	}
 	
-	public class Pair {
-		Pair(int x, int y) { this.x = x; this.y = y; }
-		int x;
-		int y;
-	}
-	
 	public void hint() {
 		// 1. Check if the number of adjacent mines equals the number of adjacent flags
 		// Uncover them.
-		for (int i = 0; i < width; i++) {
-			for (int j = 0; j < height; j++) {
-				if (!mGrid.get(i).get(j).isZero() && mGrid.get(i).get(j).isRevealed() && mGrid.get(i).get(j).getMines() == countFlags(i, j)) {
+		for (int r = 0; r < height; r++) {
+			for (int c = 0; c < width; c++) {
+				if (!mGrid.get(r).get(c).isZero() && mGrid.get(r).get(c).isRevealed() && 
+						mGrid.get(r).get(c).getMines() == countFlags(r, c)) {
 					int temp = mCount;
-					revealSurrounding(i, j);
+					revealSurrounding(r, c);
 					if (temp != mCount)
 						return;
 				}
@@ -286,18 +288,19 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		
 		// 2. Check if the number of adjacent mines equals the number of uncovered tiles
 		// Flag them
-		for (int i = 0; i < width; i++) {
-			for (int j = 0; j < height; j++) {
-				if (mGrid.get(i).get(j).isZero() || mGrid.get(i).get(j).isFlagged() || 
-						!mGrid.get(i).get(j).isRevealed())
+		for (int r = 0; r < height; r++) {
+			for (int c = 0; c < width; c++) {
+				if (mGrid.get(r).get(c).isZero() || mGrid.get(r).get(c).isFlagged() || 
+						!mGrid.get(r).get(c).isRevealed())
 					continue;
 				
-				if (mGrid.get(i).get(j).getMines() == countRevealed(i, j)) {
+				if (mGrid.get(r).get(c).getMines() == countRevealed(r, c)) {
 					boolean success = false;
-					for (int ii = Math.max(i-1, 0); ii < Math.min(i+2, width); ii++)
-						for (int jj = Math.max(j-1, 0); jj < Math.min(j+2, height); jj++)
-							if (!mGrid.get(ii).get(jj).isRevealed() && !mGrid.get(ii).get(jj).isFlagged()) {
-								mGrid.get(ii).get(jj).toggleFlag();
+					for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, width); rr++)
+						for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, height); cc++)
+							if (!mGrid.get(rr).get(cc).isRevealed() && 
+									!mGrid.get(rr).get(cc).isFlagged()) {
+								mGrid.get(rr).get(cc).toggleFlag();
 								success = true;
 							}
 					if (success)
@@ -307,23 +310,22 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		}
 		
 		// 3. Guess
-		ArrayList<Pair> a = new ArrayList<Pair>(width*height);
-		for (int i = 0; i < width; i++)
-			for (int j = 0; j < height; j++)
-				if (!mGrid.get(i).get(j).isRevealed())
-					a.add(new Pair(i, j));
+		ArrayList<Pair> a = new ArrayList<Pair>(height * width);
+		for (int r = 0; r < height; r++)
+			for (int c = 0; c < width; c++)
+				if (!mGrid.get(r).get(c).isRevealed())
+					a.add(new Pair(r, c));
 		int n = rand.nextInt(a.size());
-		int x = a.get(n).x;
-		int y = a.get(n).y;
-		reveal(x, y);
-		a.remove(n);
+		int r = a.get(n).first;
+		int c = a.get(n).second;
+		reveal(r, c);
 		return;
 	}
 	
-	public int countRevealed(int x, int y) {
+	public int countRevealed(int r, int c) {
 		int count = 0;
-		for (int i = Math.max(x-1, 0); i < Math.min(x+2, width); i++) {
-			for (int j = Math.max(y-1, 0); j < Math.min(y+2, width); j++) {
+		for (int i = Math.max(r-1, 0); i < Math.min(r+2, width); i++) {
+			for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++) {
 				if (!mGrid.get(i).get(j).isRevealed())
 					count++;
 			}

@@ -8,5 +8,11 @@
     <string name="button_play">Play</string>
     <string name="title_activity_game">Game</string>
     <string name="button_new">New Game</string>
+    <string name="button_difficulty">Difficulty</string>
+    <string-array name="button_difficulties">
+        <item>Beginner</item>
+        <item>Intermediate</item>
+        <item>Advanced</item>
+    </string-array>
 
 </resources>

@@ -18,10 +18,13 @@ public class Game extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.activity_game);
 		
+		int size[] = getIntent().getExtras().getIntArray("size");
 		game = (GameView) findViewById(R.id.gameView1);
 		time = (TextView) findViewById(R.id.textViewTime);
 		count = (TextView) findViewById(R.id.textViewCount);
 		game.setTextView(time, count);
+		game.setSize(size);
+		game.initGame();
 		game.newGame();
     }
     
