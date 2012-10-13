@@ -1,19 +1,12 @@
 package com.example.minesweeper.teacher;
 
-import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 
 public class Tile {
-	private Resources mRes;
-	private Bitmap mBitmap;
-	
 	private int mMines;
 	private boolean mRevealed;
 	private boolean mFlagged;
 	
-	public Tile(Resources res) {
-		mRes = res;
+	public Tile() {
 		reset();
 	}
 	
@@ -21,7 +14,6 @@ public class Tile {
 		mRevealed = false;
 		mFlagged = false;
 		mMines = 0;
-		updateBitmap();
 	}
 	
 	public int getMines() {
@@ -40,12 +32,10 @@ public class Tile {
 		if (mRevealed)
 			return;
 		mFlagged = !mFlagged;
-		updateBitmap();
 	}
 	
 	public void reveal() {
 		mRevealed = true;
-		updateBitmap();
 	}
 
 	public boolean isMine() {
@@ -66,34 +56,6 @@ public class Tile {
 	
 	public boolean isFlagged() {
 		return mFlagged;
-	}
-	
-	public Bitmap getBitmap() {
-		return mBitmap;
-	}
-	
-	public void updateBitmap() {
-		int id;
-		if (!mRevealed) {
-			if (mFlagged)
-				id = R.drawable.minef;
-			else
-				id = R.drawable.mined;
-		}
-		else
-			switch (mMines) {
-			case 0: id = R.drawable.mine0; break;
-			case 1: id = R.drawable.mine1; break;
-			case 2: id = R.drawable.mine2; break;
-			case 3: id = R.drawable.mine3; break;
-			case 4: id = R.drawable.mine4; break;
-			case 5: id = R.drawable.mine5; break;
-			case 6: id = R.drawable.mine6; break;
-			case 7: id = R.drawable.mine7; break;
-			case 8: id = R.drawable.mine8; break;
-			default: id = R.drawable.mine; break;
-			}
-		mBitmap = BitmapFactory.decodeResource(mRes, id);
 	}
 	
 }

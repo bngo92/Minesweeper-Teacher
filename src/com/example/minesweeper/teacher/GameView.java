@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.Random;
 
 import android.content.Context;
-import android.graphics.BitmapFactory;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.os.Handler;
 import android.util.AttributeSet;
@@ -17,7 +17,7 @@ import android.widget.TextView;
 
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private GameThread mThread;
-	private Random rand;
+	private GameBitmap mBitmap;
 	
 	private int maxHeight;
 	private int maxWidth;
@@ -48,8 +48,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 		// round up
-		maxWidth = (MeasureSpec.getSize(widthMeasureSpec) + size - 1)/ size;
-		maxHeight = (MeasureSpec.getSize(heightMeasureSpec) + size - 1)/ size;
+		maxWidth = MeasureSpec.getSize(widthMeasureSpec) / size;
+		maxHeight = MeasureSpec.getSize(heightMeasureSpec) / size;
 	}
 	
 	public GameView(Context context) {
@@ -117,16 +117,16 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		getHolder().addCallback(this);
 		mThread = new GameThread(this);
 		
-		rand = new Random();
 		mTimer = new Handler();
-		size = BitmapFactory.decodeResource(getResources(), R.drawable.mined).getWidth();
+		mBitmap = new GameBitmap(getResources());
+		size = mBitmap.getBitmap(R.drawable.mine).getWidth();
 
 		mMines = new ArrayList<Tile>(mines);
 		mGrid = new ArrayList<ArrayList<Tile>>(height);
 		for (int r = 0; r < height; r++) {
 			mGrid.add(new ArrayList<Tile>(width));
 			for (int c = 0; c < width; c++)
-				mGrid.get(r).add(new Tile(getResources()));
+				mGrid.get(r).add(new Tile());
 		}
 
 		// Handle input events
@@ -269,10 +269,25 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 
 	public void doDraw(Canvas canvas) {
-		for (int r = 0; r < Math.min(height, maxHeight); r++)
-			for (int c = 0; c < Math.min(width, maxWidth); c++)
-				canvas.drawBitmap(mGrid.get(r+offset_row).get(c+offset_col).getBitmap(),
+		for (int r = 0; r < Math.min(height, maxHeight+1); r++) {
+			if (r + offset_row >= height) {
+				for (int c = 0; c < Math.min(width, maxWidth+1); c++)
+					canvas.drawBitmap(getBitmap(),
+							c*size, r*size, null);
+				break;
+			}
+			ArrayList<Tile> row = mGrid.get(r+offset_row);
+			for (int c = 0; c < Math.min(width, maxWidth+1); c++) {
+				if (c + offset_col >= width) {
+					canvas.drawBitmap(getBitmap(),
+							c*size, r*size, null);
+					break;
+				}
+				Tile tile = row.get(c+offset_col);
+				canvas.drawBitmap(getBitmap(tile),
 						c*size, r*size, null);
+			}
+		}
 	}
 
 	public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
@@ -341,6 +356,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			for (int c = 0; c < width; c++)
 				if (!mGrid.get(r).get(c).isRevealed())
 					a.add(new Pair(r, c));
+		Random rand = new Random();
 		int n = rand.nextInt(a.size());
 		int r = a.get(n).first;
 		int c = a.get(n).second;
@@ -357,6 +373,34 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			}
 		}
 		return count;
+	}
+	
+	public Bitmap getBitmap() {
+		return mBitmap.getBitmap(R.drawable.mine);
+	}
+	
+	public Bitmap getBitmap(Tile tile) {
+		int id;
+		if (!tile.isRevealed()) {
+			if (tile.isFlagged())
+				id = R.drawable.minef;
+			else
+				id = R.drawable.mined;
+		}
+		else
+			switch (tile.getMines()) {
+			case 0: id = R.drawable.mine0; break;
+			case 1: id = R.drawable.mine1; break;
+			case 2: id = R.drawable.mine2; break;
+			case 3: id = R.drawable.mine3; break;
+			case 4: id = R.drawable.mine4; break;
+			case 5: id = R.drawable.mine5; break;
+			case 6: id = R.drawable.mine6; break;
+			case 7: id = R.drawable.mine7; break;
+			case 8: id = R.drawable.mine8; break;
+			default: id = R.drawable.mine; break;
+			}
+		return mBitmap.getBitmap(id);
 	}
 	
 }
