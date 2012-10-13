@@ -309,7 +309,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	    }
 	}
 	
-	public void hint() {
+	public boolean hint() {
 		// 1. Check if the number of adjacent mines equals the number of adjacent flags
 		// Uncover them.
 		for (int r = 0; r < height; r++) {
@@ -317,9 +317,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				if (!mGrid.get(r).get(c).isZero() && mGrid.get(r).get(c).isRevealed() && 
 						mGrid.get(r).get(c).getMines() == countFlags(r, c)) {
 					int temp = mCount;
+					scroll(r - maxHeight/2 - offset_row, c - maxWidth/2 - offset_col);
 					revealSurrounding(r, c);
 					if (temp != mCount)
-						return;
+						return true;
 				}
 			}
 		}
@@ -338,16 +339,17 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 						for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, width); cc++)
 							if (!mGrid.get(rr).get(cc).isRevealed() && 
 									!mGrid.get(rr).get(cc).isFlagged()) {
+								scroll(r - maxHeight/2 - offset_row, c - maxWidth/2 - offset_col);
 								mGrid.get(rr).get(cc).toggleFlag();
 								success = true;
 							}
 					if (success)
-						return;
+						return true;
 				}
 			}
 		}
 		
-		guess();
+		return false;
 	}
 	
 	public void guess() {
@@ -360,6 +362,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		int n = rand.nextInt(a.size());
 		int r = a.get(n).first;
 		int c = a.get(n).second;
+		scroll(r - maxHeight/2 - offset_row, c - maxWidth/2 - offset_col);
 		reveal(r, c);
 		return;
 	}

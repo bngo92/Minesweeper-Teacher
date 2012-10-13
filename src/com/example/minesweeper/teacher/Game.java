@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
+import android.widget.Button;
 import android.widget.TextView;
 
 public class Game extends Activity {
@@ -11,6 +12,8 @@ public class Game extends Activity {
 	TextView time;
 	TextView count;
 	GameView game;
+	Button hint;
+	boolean guess;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -19,9 +22,13 @@ public class Game extends Activity {
 		setContentView(R.layout.activity_game);
 		
 		int size[] = getIntent().getExtras().getIntArray("size");
+		guess = false;
+		
 		game = (GameView) findViewById(R.id.gameView1);
 		time = (TextView) findViewById(R.id.textViewTime);
 		count = (TextView) findViewById(R.id.textViewCount);
+		hint = (Button) findViewById(R.id.button_hint);
+		
 		game.setTextView(time, count);
 		game.setSize(size);
 		game.initGame();
@@ -33,7 +40,14 @@ public class Game extends Activity {
     }
     
     public void hint(View view) {
-    	game.hint();
+    	if (guess) {
+    		game.guess();
+    		hint.setText(R.string.button_hint);
+    		guess = false;
+    	} else if (!game.hint()) {
+    		hint.setText(R.string.button_guess);
+    		guess = true;
+    	}
     }
     
     public void scrollLeft(View view) {

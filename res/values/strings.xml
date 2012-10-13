@@ -14,5 +14,6 @@
         <item>Intermediate</item>
         <item>Advanced</item>
     </string-array>
+    <string name="button_guess">Guess</string>
 
 </resources>
