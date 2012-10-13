@@ -19,6 +19,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private GameThread mThread;
 	private Random rand;
 	
+	private int maxHeight;
+	private int maxWidth;
+	
 	private ArrayList<ArrayList<Tile>> mGrid;	
 	private ArrayList<Tile> mMines;
 	
@@ -33,13 +36,21 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private Handler mTimer;
 	private int mSeconds;
 
-	int mR;
-	int mC;
-	int offset_row;
-	int offset_col;
+	private int mR;
+	private int mC;
+	private int offset_row;
+	private int offset_col;
 	
 	TextView tvtime;
 	TextView tvcount;
+	
+	@Override
+	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+		// round up
+		maxWidth = (MeasureSpec.getSize(widthMeasureSpec) + size - 1)/ size;
+		maxHeight = (MeasureSpec.getSize(heightMeasureSpec) + size - 1)/ size;
+	}
 	
 	public GameView(Context context) {
 		super(context);
@@ -62,6 +73,16 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	public void setTextView(TextView time, TextView count) {
 		tvtime = time;
 		tvcount = count;
+	}
+	
+	public void scroll(int r, int c) {
+		offset_row += r;
+		offset_row = Math.min(height - maxHeight, offset_row);
+		offset_row = Math.max(0, offset_row);
+		
+		offset_col += c;
+		offset_col = Math.min(width - maxWidth, offset_col);
+		offset_col = Math.max(0, offset_col);
 	}
 	
 	// Timer functions
@@ -98,7 +119,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		
 		rand = new Random();
 		mTimer = new Handler();
-
 		size = BitmapFactory.decodeResource(getResources(), R.drawable.mined).getWidth();
 
 		mMines = new ArrayList<Tile>(mines);
@@ -114,8 +134,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 			public boolean onTouch(View v, MotionEvent event) {
 				// Store x and y coordinates for the following listener
-				mR = (int) event.getX() / size;
-				mC = (int) event.getY() / size;
+				mR = (int) event.getY() / size + offset_row;
+				mC = (int) event.getX() / size + offset_col;
 
 				// Ignore touch if the game isn't active or the touch is out of bounds
 				if (!mActive || mR >= height || mC >= width)
@@ -163,6 +183,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 	
 	public void newGame() {
+		offset_row = 0;
+		offset_col = 0;
+		
 		// Clear mines and grid
 		mMines.clear();
 		for (ArrayList<Tile> arrayList : mGrid)
@@ -246,10 +269,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 
 	public void doDraw(Canvas canvas) {
-		for (int r = offset_row; r < width; r++)
-			for (int c = offset_col; c < height; c++)
-				canvas.drawBitmap(mGrid.get(r).get(c).getBitmap(),
-						r * size , c * size, null);
+		for (int r = 0; r < Math.min(height, maxHeight); r++)
+			for (int c = 0; c < Math.min(width, maxWidth); c++)
+				canvas.drawBitmap(mGrid.get(r+offset_row).get(c+offset_col).getBitmap(),
+						c*size, r*size, null);
 	}
 
 	public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
@@ -296,8 +319,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				
 				if (mGrid.get(r).get(c).getMines() == countRevealed(r, c)) {
 					boolean success = false;
-					for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, width); rr++)
-						for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, height); cc++)
+					for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, height); rr++)
+						for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, width); cc++)
 							if (!mGrid.get(rr).get(cc).isRevealed() && 
 									!mGrid.get(rr).get(cc).isFlagged()) {
 								mGrid.get(rr).get(cc).toggleFlag();
@@ -309,7 +332,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			}
 		}
 		
-		// 3. Guess
+		guess();
+	}
+	
+	public void guess() {
 		ArrayList<Pair> a = new ArrayList<Pair>(height * width);
 		for (int r = 0; r < height; r++)
 			for (int c = 0; c < width; c++)
@@ -324,7 +350,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	
 	public int countRevealed(int r, int c) {
 		int count = 0;
-		for (int i = Math.max(r-1, 0); i < Math.min(r+2, width); i++) {
+		for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++) {
 			for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++) {
 				if (!mGrid.get(i).get(j).isRevealed())
 					count++;

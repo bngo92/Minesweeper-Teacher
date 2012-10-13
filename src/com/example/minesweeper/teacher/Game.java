@@ -35,4 +35,21 @@ public class Game extends Activity {
     public void hint(View view) {
     	game.hint();
     }
+    
+    public void scrollLeft(View view) {
+    	game.scroll(0, -1);
+    }
+    
+    public void scrollDown(View view) {
+    	game.scroll(1, 0);
+    }
+    
+    public void scrollUp(View view) {
+    	game.scroll(-1, 0);
+    }
+    
+    public void scrollRight(View view) {
+    	game.scroll(0, 1);
+    }
+
 }
