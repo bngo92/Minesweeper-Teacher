@@ -7,7 +7,6 @@ import java.util.Random;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.os.Handler;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -17,7 +16,8 @@ import android.widget.TextView;
 
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private GameThread mThread;
-	private GameBitmap mBitmap;
+	private BitmapCache mBitmap;
+	private Timer mTimer;
 	
 	private int maxHeight;
 	private int maxWidth;
@@ -33,8 +33,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private int mCount;
 	private boolean mStart;
 	private boolean mActive;
-	private Handler mTimer;
-	private int mSeconds;
 
 	private int mR;
 	private int mC;
@@ -43,14 +41,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	
 	TextView tvtime;
 	TextView tvcount;
-	
-	@Override
-	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-		// round up
-		maxWidth = MeasureSpec.getSize(widthMeasureSpec) / size;
-		maxHeight = MeasureSpec.getSize(heightMeasureSpec) / size;
-	}
 	
 	public GameView(Context context) {
 		super(context);
@@ -63,64 +53,22 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	public GameView(Context context, AttributeSet attrs, int defStyle) {
 		super(context, attrs, defStyle);
 	}
-	
-	public void setSize(int[] size) {
-		height = size[0];
-		width = size[1];
-		mines = size[2];
-	}
-	
-	public void setTextView(TextView time, TextView count) {
-		tvtime = time;
-		tvcount = count;
-	}
-	
-	public void scroll(int r, int c) {
-		offset_row += r;
-		offset_row = Math.min(height - maxHeight, offset_row);
-		offset_row = Math.max(0, offset_row);
-		
-		offset_col += c;
-		offset_col = Math.min(width - maxWidth, offset_col);
-		offset_col = Math.max(0, offset_col);
-	}
-	
-	// Timer functions
-	public void startTimer() {
-		resetTimer();
-		mTimer.removeCallbacks(updateTimer);
-		mTimer.postDelayed(updateTimer, 1000);
-	}
-	
-	public void stopTimer() {
-		mTimer.removeCallbacks(updateTimer);
-	}
-	
-	private Runnable updateTimer = new Runnable() {
-		public void run() {
-			mSeconds++;
-			tvtime.setText("" + mSeconds);
-			mTimer.postDelayed(updateTimer, 1000);
-		}
-	};
-	
-	public void resetTimer() {
-		mSeconds = 0;
-		tvtime.setText("" + 0);
-	}
-	
-	public void updateCount() {
-		tvcount.setText("" + mCount);
-	}
 
-	public void initGame() {
+	public void initGame(final Game parent) {
+		int[] gameSize = parent.getIntent().getExtras().getIntArray("size");
+		height = gameSize[0];
+		width = gameSize[1];
+		mines = gameSize[2];
+		tvtime = (TextView) parent.findViewById(R.id.textViewTime);
+		tvcount = (TextView) parent.findViewById(R.id.textViewCount);
+		
 		getHolder().addCallback(this);
 		mThread = new GameThread(this);
-		
-		mTimer = new Handler();
-		mBitmap = new GameBitmap(getResources());
+		mTimer = new Timer(tvtime);
+		mBitmap = new BitmapCache(getResources());
 		size = mBitmap.getBitmap(R.drawable.mine).getWidth();
 
+		// Setup grid
 		mMines = new ArrayList<Tile>(mines);
 		mGrid = new ArrayList<ArrayList<Tile>>(height);
 		for (int r = 0; r < height; r++) {
@@ -133,6 +81,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		this.setOnTouchListener(new OnTouchListener() {
 
 			public boolean onTouch(View v, MotionEvent event) {
+				parent.resetGuess();
+				
 				// Store x and y coordinates for the following listener
 				mR = (int) event.getY() / size + offset_row;
 				mC = (int) event.getX() / size + offset_col;
@@ -145,7 +95,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				// TODO: change when panning is enabled
 				if (!mStart) {
 					mStart = true;
-					startTimer();
+					mTimer.startTimer();
 				}
 				
 				// Process the following listener 
@@ -172,17 +122,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					revealSurrounding(mR, mC);
 				else
 					reveal(mR, mC);
-				
-				if (mCount == 0) {
-					stopTimer();
-					mActive = false;
-				}
 			}
 			
 		});
 	}
 	
 	public void newGame() {
+		// Reset position
 		offset_row = 0;
 		offset_col = 0;
 		
@@ -207,7 +153,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			mMines.add(mGrid.get(p.first).get(p.second));
 		}
 		
-		// Count mines
+		// Update mine count
 		for (int r = 0; r < height; r++) {
 			for (int c = 0; c < width; c++) {
 				if (mGrid.get(r).get(c).isMine())
@@ -227,45 +173,174 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		mStart = false;
 		
 		// Update text view;
-		resetTimer();
+		mTimer.resetTimer();
 		updateCount();
 	}
 	
-	public void reveal(int r, int c) {
+	public int reveal(int r, int c) {
 		Tile tile = mGrid.get(r).get(c);
 		
 		if (tile.isFlagged() || tile.isRevealed())
-			return;
+			return 0;
 
 		tile.reveal();
 		if (tile.isMine()) {
-			stopTimer();
+			mTimer.stopTimer();
 			mActive = false;
 			for (Tile mine : mMines)
 				mine.reveal();
-		} else {
-			mCount--;
-			updateCount();
-			if (tile.isZero())
-				revealSurrounding(r, c);
+			return 0;
 		}
+		
+		mCount--;
+		updateCount();
+		
+		int n = 1;
+		if (tile.isZero())
+			n += revealSurrounding(r, c);
+		return n;
 	}
 
-	public void revealSurrounding(int r, int c) {
+	public int revealSurrounding(int r, int c) {
+		int n = 0;
 		for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++)
 			for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++)
-				reveal(i, j);
+				n += reveal(i, j);
+		return n;
 	}	
 	
 	public int countFlags(int r, int c) {
 		int count = 0;
 		for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++) {
 			for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++) {
+				if (i == r && j == c)
+					continue;
 				if (mGrid.get(i).get(j).isFlagged())
 					count++;
 			}
 		}
 		return count;
+	}
+
+	public int countRevealed(int r, int c) {
+		int count = 0;
+		for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++) {
+			for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++) {
+				if (i == r && j == c)
+					continue;
+				if (mGrid.get(i).get(j).isRevealed())
+					count++;
+			}
+		}
+		return count;
+	}
+	
+	public int countUnrevealed(int r, int c) {
+		int count = 0;
+		for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++) {
+			for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++) {
+				if (i == r && j == c)
+					continue;
+				if (!mGrid.get(i).get(j).isRevealed())
+					count++;
+			}
+		}
+		return count;
+	}
+	
+	public ArrayList<Tile> getUnrevealedNeighbors(int r, int c) {
+		ArrayList<Tile> a = new ArrayList<Tile>();
+
+		for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++) {
+			for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++) {
+				if (i == r && j == c)
+					continue;
+				if (!mGrid.get(i).get(j).isRevealed())
+					a.add(mGrid.get(i).get(j));
+			}
+		}
+		
+		return a;
+	}
+	
+	public boolean hint() {
+		// Start time during the first touch
+		if (!mStart) {
+			mStart = true;
+			mTimer.startTimer();
+		}
+		
+		if (!mActive)
+			return true;
+		
+		// 1. Check if the number of adjacent mines equals the number of adjacent flags
+		// Uncover them.
+		for (int r = 0; r < height; r++) {
+			for (int c = 0; c < width; c++) {
+				Tile tile = mGrid.get(r).get(c);
+				if (tile.isRevealed() && !tile.isZero() && 
+						countRevealed(r, c) != 0 && 
+						tile.getMines() == countFlags(r, c)) {
+					if (revealSurrounding(r, c) != 0) {
+						scroll(r - maxHeight/2 - offset_row, c - maxWidth/2 - offset_col);
+						return true;
+					}
+				}
+			}
+		}
+		
+		// 2. Check if the number of adjacent mines equals the number of uncovered tiles
+		// Flag them
+		for (int r = 0; r < height; r++) {
+			for (int c = 0; c < width; c++) {
+				if (mGrid.get(r).get(c).isZero() || 
+						mGrid.get(r).get(c).isFlagged() || 
+						!mGrid.get(r).get(c).isRevealed())
+					continue;
+				
+				if (mGrid.get(r).get(c).getMines() == countUnrevealed(r, c)) {
+					boolean success = false;
+					for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, height); rr++)
+						for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, width); cc++)
+							if (!mGrid.get(rr).get(cc).isRevealed() && 
+									!mGrid.get(rr).get(cc).isFlagged()) {
+								scroll(r - maxHeight/2 - offset_row, c - maxWidth/2 - offset_col);
+								mGrid.get(rr).get(cc).toggleFlag();
+								
+								success = true;
+							}
+					if (success)
+						return true;
+				}
+			}
+		}
+		
+		return false;
+	}
+	
+	public void guess() {
+		// Start time during the first touch
+		if (!mStart) {
+			mStart = true;
+			mTimer.startTimer();
+		}
+		
+		// Build candidates for guessing
+		ArrayList<Pair> a = new ArrayList<Pair>(height * width);
+		for (int r = 0; r < height; r++)
+			for (int c = 0; c < width; c++)
+				if (!mGrid.get(r).get(c).isRevealed() && 
+						!mGrid.get(r).get(c).isFlagged())
+					a.add(new Pair(r, c));
+		
+		Random rand = new Random();
+		int n = rand.nextInt(a.size());
+		int r = a.get(n).first;
+		int c = a.get(n).second;
+		
+		scroll(r - maxHeight/2 - offset_row, c - maxWidth/2 - offset_col);
+		reveal(r, c);
+		return;
 	}
 
 	public void doDraw(Canvas canvas) {
@@ -289,6 +364,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			}
 		}
 	}
+	
+	@Override
+	protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+		super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+		// round up
+		maxWidth = MeasureSpec.getSize(widthMeasureSpec) / size;
+		maxHeight = MeasureSpec.getSize(heightMeasureSpec) / size;
+	}
 
 	public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
 		// TODO Auto-generated method stub
@@ -307,75 +390,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	    if (mThread.isAlive()) {
 	        mThread.setRunning(false);
 	    }
-	}
-	
-	public boolean hint() {
-		// 1. Check if the number of adjacent mines equals the number of adjacent flags
-		// Uncover them.
-		for (int r = 0; r < height; r++) {
-			for (int c = 0; c < width; c++) {
-				if (!mGrid.get(r).get(c).isZero() && mGrid.get(r).get(c).isRevealed() && 
-						mGrid.get(r).get(c).getMines() == countFlags(r, c)) {
-					int temp = mCount;
-					scroll(r - maxHeight/2 - offset_row, c - maxWidth/2 - offset_col);
-					revealSurrounding(r, c);
-					if (temp != mCount)
-						return true;
-				}
-			}
-		}
-		
-		// 2. Check if the number of adjacent mines equals the number of uncovered tiles
-		// Flag them
-		for (int r = 0; r < height; r++) {
-			for (int c = 0; c < width; c++) {
-				if (mGrid.get(r).get(c).isZero() || mGrid.get(r).get(c).isFlagged() || 
-						!mGrid.get(r).get(c).isRevealed())
-					continue;
-				
-				if (mGrid.get(r).get(c).getMines() == countRevealed(r, c)) {
-					boolean success = false;
-					for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, height); rr++)
-						for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, width); cc++)
-							if (!mGrid.get(rr).get(cc).isRevealed() && 
-									!mGrid.get(rr).get(cc).isFlagged()) {
-								scroll(r - maxHeight/2 - offset_row, c - maxWidth/2 - offset_col);
-								mGrid.get(rr).get(cc).toggleFlag();
-								success = true;
-							}
-					if (success)
-						return true;
-				}
-			}
-		}
-		
-		return false;
-	}
-	
-	public void guess() {
-		ArrayList<Pair> a = new ArrayList<Pair>(height * width);
-		for (int r = 0; r < height; r++)
-			for (int c = 0; c < width; c++)
-				if (!mGrid.get(r).get(c).isRevealed())
-					a.add(new Pair(r, c));
-		Random rand = new Random();
-		int n = rand.nextInt(a.size());
-		int r = a.get(n).first;
-		int c = a.get(n).second;
-		scroll(r - maxHeight/2 - offset_row, c - maxWidth/2 - offset_col);
-		reveal(r, c);
-		return;
-	}
-	
-	public int countRevealed(int r, int c) {
-		int count = 0;
-		for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++) {
-			for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++) {
-				if (!mGrid.get(i).get(j).isRevealed())
-					count++;
-			}
-		}
-		return count;
 	}
 	
 	public Bitmap getBitmap() {
@@ -404,6 +418,25 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			default: id = R.drawable.mine; break;
 			}
 		return mBitmap.getBitmap(id);
+	}
+	
+	public void scroll(int r, int c) {
+		offset_row += r;
+		offset_row = Math.min(height - maxHeight, offset_row);
+		offset_row = Math.max(0, offset_row);
+		
+		offset_col += c;
+		offset_col = Math.min(width - maxWidth, offset_col);
+		offset_col = Math.max(0, offset_col);
+	}
+	
+	public void updateCount() {
+		tvcount.setText("Tiles Left: " + mCount);
+		
+		if (mCount == 0) {
+			mTimer.stopTimer();
+			mActive = false;
+		}
 	}
 	
 }
