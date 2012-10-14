@@ -2,6 +2,7 @@ package com.example.minesweeper.teacher;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.Random;
 
 import android.content.Context;
@@ -14,19 +15,24 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.TextView;
 
+import com.example.minesweeper.teacher.Tile.State;
+
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private GameThread mThread;
 	private BitmapCache mBitmap;
 	private Timer mTimer;
-	
+
+	private int height;
+	private int width;
 	private int maxHeight;
 	private int maxWidth;
+	private int offset_row;
+	private int offset_col;
+	private LinkedList<Tile> queue;
 	
 	private ArrayList<ArrayList<Tile>> mGrid;	
 	private ArrayList<Tile> mMines;
 	
-	private int height;
-	private int width;
 	private int mines;
 	private int size;
 	
@@ -36,8 +42,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 	private int mR;
 	private int mC;
-	private int offset_row;
-	private int offset_col;
 	
 	TextView tvtime;
 	TextView tvcount;
@@ -67,6 +71,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		mTimer = new Timer(tvtime);
 		mBitmap = new BitmapCache(getResources());
 		size = mBitmap.getBitmap(R.drawable.mine).getWidth();
+		queue = new LinkedList<Tile>();
 
 		// Setup grid
 		mMines = new ArrayList<Tile>(mines);
@@ -74,13 +79,17 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		for (int r = 0; r < height; r++) {
 			mGrid.add(new ArrayList<Tile>(width));
 			for (int c = 0; c < width; c++)
-				mGrid.get(r).add(new Tile());
+				mGrid.get(r).add(new Tile(r, c));
 		}
 
 		// Handle input events
 		this.setOnTouchListener(new OnTouchListener() {
 
 			public boolean onTouch(View v, MotionEvent event) {
+				while (!queue.isEmpty()) {
+					Tile tile = queue.pop();
+					tile.setState(State.NONE);
+				}
 				parent.resetGuess();
 				
 				// Store x and y coordinates for the following listener
@@ -221,49 +230,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		}
 		return count;
 	}
-
-	public int countRevealed(int r, int c) {
-		int count = 0;
-		for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++) {
-			for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++) {
-				if (i == r && j == c)
-					continue;
-				if (mGrid.get(i).get(j).isRevealed())
-					count++;
-			}
-		}
-		return count;
-	}
 	
-	public int countUnrevealed(int r, int c) {
-		int count = 0;
-		for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++) {
-			for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++) {
-				if (i == r && j == c)
-					continue;
-				if (!mGrid.get(i).get(j).isRevealed())
-					count++;
-			}
-		}
-		return count;
-	}
-	
-	public ArrayList<Tile> getUnrevealedNeighbors(int r, int c) {
-		ArrayList<Tile> a = new ArrayList<Tile>();
-
-		for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++) {
-			for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++) {
-				if (i == r && j == c)
-					continue;
-				if (!mGrid.get(i).get(j).isRevealed())
-					a.add(mGrid.get(i).get(j));
-			}
-		}
-		
-		return a;
-	}
-	
-	public boolean hint() {
+	public String hint() {
 		// Start time during the first touch
 		if (!mStart) {
 			mStart = true;
@@ -271,53 +239,48 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		}
 		
 		if (!mActive)
-			return true;
+			return null;
 		
-		// 1. Check if the number of adjacent mines equals the number of adjacent flags
-		// Uncover them.
-		for (int r = 0; r < height; r++) {
-			for (int c = 0; c < width; c++) {
-				Tile tile = mGrid.get(r).get(c);
-				if (tile.isRevealed() && !tile.isZero() && 
-						countRevealed(r, c) != 0 && 
-						tile.getMines() == countFlags(r, c)) {
-					if (revealSurrounding(r, c) != 0) {
-						scroll(r - maxHeight/2 - offset_row, c - maxWidth/2 - offset_col);
-						return true;
-					}
+		if (!queue.isEmpty()) {
+			while (!queue.isEmpty()) {
+				Tile tile = queue.pop();
+				Pair coords = tile.getCoords();
+				switch (tile.getState()) {
+				case REVEAL:
+					reveal(coords.first, coords.second);
+					break;
+				case REVEAL_SURROUNDING:
+					revealSurrounding(coords.first, coords.second);
+					break;
+				case FLAG:
+					tile.setFlag(true);
+					break;
+				default:
+					break;
 				}
+				tile.setState(State.NONE);
 			}
+			return null;
 		}
 		
-		// 2. Check if the number of adjacent mines equals the number of uncovered tiles
-		// Flag them
+		String hint;
 		for (int r = 0; r < height; r++) {
 			for (int c = 0; c < width; c++) {
-				if (mGrid.get(r).get(c).isZero() || 
-						mGrid.get(r).get(c).isFlagged() || 
-						!mGrid.get(r).get(c).isRevealed())
-					continue;
-				
-				if (mGrid.get(r).get(c).getMines() == countUnrevealed(r, c)) {
-					boolean success = false;
-					for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, height); rr++)
-						for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, width); cc++)
-							if (!mGrid.get(rr).get(cc).isRevealed() && 
-									!mGrid.get(rr).get(cc).isFlagged()) {
-								scroll(r - maxHeight/2 - offset_row, c - maxWidth/2 - offset_col);
-								mGrid.get(rr).get(cc).toggleFlag();
-								
-								success = true;
-							}
-					if (success)
-						return true;
-				}
+				hint = revealAlgorithm(r, c);
+				if (hint != null)
+					return hint;
+				hint = flagAlgorithm(r, c);
+				if (hint != null)
+					return hint;
+				hint = pairAlgorithm(r, c);
+				if (hint != null)
+					return hint;
 			}
 		}
-		
-		return false;
+		guess();
+		return "guess";
 	}
-	
+
 	public void guess() {
 		// Start time during the first touch
 		if (!mStart) {
@@ -337,9 +300,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		int n = rand.nextInt(a.size());
 		int r = a.get(n).first;
 		int c = a.get(n).second;
-		
-		scroll(r - maxHeight/2 - offset_row, c - maxWidth/2 - offset_col);
-		reveal(r, c);
+
+		scrollToHint(r, c);
+		mGrid.get(r).get(c).setState(State.REVEAL);
+		queue.push(mGrid.get(r).get(c));
 		return;
 	}
 
@@ -398,13 +362,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	
 	public Bitmap getBitmap(Tile tile) {
 		int id;
-		if (!tile.isRevealed()) {
+		if (tile.getState() != State.NONE) {
+			id = R.drawable.miner;
+		} else if (!tile.isRevealed()) {
 			if (tile.isFlagged())
 				id = R.drawable.minef;
 			else
 				id = R.drawable.mined;
-		}
-		else
+		} else
 			switch (tile.getMines()) {
 			case 0: id = R.drawable.mine0; break;
 			case 1: id = R.drawable.mine1; break;
@@ -421,13 +386,19 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 	
 	public void scroll(int r, int c) {
-		offset_row += r;
-		offset_row = Math.min(height - maxHeight, offset_row);
-		offset_row = Math.max(0, offset_row);
-		
-		offset_col += c;
-		offset_col = Math.min(width - maxWidth, offset_col);
-		offset_col = Math.max(0, offset_col);
+		int row = offset_row + r;
+		if (row > height - maxHeight)
+			row = height - maxHeight;
+		if (row < 0)
+			row = 0;
+		offset_row = row;
+
+		int col = offset_col + c;
+		if (col > width - maxWidth)
+			col = width - maxWidth;
+		if (col < 0)
+			col = 0;
+		offset_col = col;
 	}
 	
 	public void updateCount() {
@@ -439,4 +410,218 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		}
 	}
 	
+	public Tile getTile(int r, int c) {
+		return mGrid.get(r).get(c);
+	}
+	
+	//public class Hint {
+		/* 1. Check if the number of adjacent mines equals the number of adjacent flags
+		 * Uncover them.
+		 *
+		 * ?F?		UFU
+		 * ?1?	->	U1U
+		 * ???		UUU
+		 */
+		public String revealAlgorithm(int r, int c) {
+			Tile tile = getTile(r, c);
+			if (!tile.isRevealed() || 
+					tile.isZero() || 
+					countRevealed(r, c) == 0 ||
+					countUnrevealed(r, c) == 0 ||
+					countMines(r, c) != 0)
+				return null;
+			
+			tile.setState(State.REVEAL_SURROUNDING);
+			queue.push(tile);
+			
+			scrollToHint(r, c);
+			return String.format("(%d,%d) has %d mines and %d flags.", r, c, tile.getMines(), tile.getMines());
+		}
+
+		/* 2. Check if the number of adjacent mines equals the number of uncovered tiles
+		 * Flag them
+		 * 
+		 * 2?		2F
+		 * 2?	->	2F
+		 * ??		??
+		 */
+		public String flagAlgorithm(int r, int c) {
+			Tile tile = getTile(r, c);
+			if (tile.isZero() || 
+					tile.isFlagged() || 
+					!tile.isRevealed())
+				return null;
+				
+			int mines = countMines(r, c);
+			int unrevealed = countUnrevealed(r, c);
+			if (mines != unrevealed)
+				return null;
+
+			boolean success = false;
+			for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, height); rr++) {
+				for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, width); cc++) {
+					
+					if (rr == r && cc == c)
+						continue;
+					
+					Tile subtile = getTile(rr, cc);
+					if (subtile.isRevealed() ||
+							subtile.isFlagged()) 
+						continue;
+					
+					subtile.setState(State.FLAG);
+					queue.push(subtile);
+					success = true;
+				}
+			}
+			if (success) {
+				scrollToHint(r, c);
+				return String.format("(%d,%d) has %d mines and %d uncovered tiles.", r, c, tile.getMines(), tile.getMines());
+			}
+			return null;
+		}
+
+		/* 3. Check if a neighbor has a subset of tiles
+		 * Uncover or flag the rest
+		 * 
+		 * 1?		1?
+		 * 1?	->	1?
+		 * 1?		1U
+		 * 
+		 * 1?		1?
+		 * 2?	->	2?
+		 * 2?		2F
+		 */
+		public String pairAlgorithm(int r, int c) {
+			Tile tile = getTile(r, c);
+			if (tile.isZero() || 
+					tile.isFlagged() || 
+					!tile.isRevealed() ||
+					countUnrevealed(r, c) == 0)
+				return null;
+			
+			ArrayList<Tile> tile_neighbors = getUnrevealedNeighbors(r, c);
+			for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, height); rr++) {
+				for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, width); cc++) {
+					
+					if (rr == r && cc == c)
+						continue;
+					
+					Tile subtile = getTile(rr, cc);
+					if (subtile.isZero() || 
+							!subtile.isRevealed() || 
+							subtile.isFlagged() ||
+							countUnrevealed(rr, cc) == 0)
+						continue;
+					
+					ArrayList<Tile> subtile_neighbors = getUnrevealedNeighbors(rr, cc);
+					ArrayList<Tile> tile_unique = removeSubset(tile_neighbors, subtile_neighbors);
+					if (tile_unique.isEmpty())
+						continue;
+					
+					int success = 0;
+					String s = "";
+					int mine_difference = countMines(r, c) - countMines(rr, cc);
+					if (mine_difference == tile_unique.size()) {
+						s = "mines";
+						for (Tile t: tile_unique) {
+							if (t.isFlagged()) 
+								continue; 
+							
+							t.setState(State.FLAG);
+							queue.push(t);
+							success++;
+						}
+					} else if (countMines(r, c) == countMines(rr, cc) && mine_difference < tile_unique.size()) {
+						s = "not mines";
+						for (Tile t: tile_unique) {
+							t.setState(State.REVEAL);
+							queue.push(t);
+							success++;
+						}
+					}
+					if (success != 0) {
+						scrollToHint(r, c);
+						return String.format("(%d,%d) and (%d,%d) share %d tiles." +
+								"The remaining %d are %s.", 
+								r, c, rr, cc, 
+								subtile_neighbors.size(),
+								success, s);
+					}
+				}
+			}
+			return null;
+		}
+
+		private int countRevealed(int r, int c) {
+			int count = 0;
+			for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, height); rr++) {
+				for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, width); cc++) {
+					if (rr == r && cc == c)
+						continue;
+
+					Tile tile = getTile(r, c);
+					if (tile.isRevealed() || 
+							tile.isFlagged())
+						count++;
+				}
+			}
+			return count;
+		}
+		
+		private int countUnrevealed(int r, int c) {
+			int count = 0;
+			for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, height); rr++) {
+				for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, width); cc++) {
+					if (rr == r && cc == c)
+						continue;
+
+					Tile tile = getTile(rr, cc);
+					if (!tile.isRevealed() &&
+							!tile.isFlagged())
+						count++;
+				}
+			}
+			return count;
+		}
+		
+		private int countMines(int r, int c) {
+			return getTile(r, c).getMines() - countFlags(r, c);
+		}	
+		
+		private ArrayList<Tile> getUnrevealedNeighbors(int r, int c) {
+			ArrayList<Tile> a = new ArrayList<Tile>();
+
+			for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++) {
+				for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++) {
+					if (i == r && j == c)
+						continue;
+					
+					Tile tile = getTile(i, j);
+					if (!tile.isRevealed() && !tile.isFlagged())
+						a.add(tile);
+				}
+			}
+			
+			return a;
+		}
+		
+		private ArrayList<Tile> removeSubset(final ArrayList<Tile> a1, ArrayList<Tile> a2) {
+			if (a2.size() > a1.size())
+				return new ArrayList<Tile>();
+			
+			for (Tile tile : a2) {
+				if (a1.contains(tile))
+					a1.remove(tile);
+				else
+					return new ArrayList<Tile>();
+			}
+			
+			return a1;
+		}
+		
+		public void scrollToHint(int r, int c) {
+			scroll(r - maxHeight/2 - offset_row, c - maxWidth/2 - offset_col);
+		}
+	//}
 }

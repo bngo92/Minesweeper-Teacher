@@ -10,6 +10,7 @@ public class Game extends Activity {
 	GameView game;
 	Button hint;
 	boolean guess;
+	HintDialog hintDialog;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -22,6 +23,7 @@ public class Game extends Activity {
 		game.initGame(this);
 		resetGuess();
 		game.newGame();
+		hintDialog = new HintDialog();
     }
     
     public void newGame(View view) {
@@ -31,12 +33,26 @@ public class Game extends Activity {
     
     public void hint(View view) {
     	if (guess) {
-    		game.guess();
+    		game.hint();
     		resetGuess();
-    	} else if (!game.hint()) {
+    		return;
+    	} 
+    	
+    	String hintText = game.hint();
+    	if (hintText == null) {
+    		return;
+    	} else if (hintText == "guess") {
     		hint.setText(R.string.button_guess);
     		guess = true;
+    	} else {
+    		hintDialog.setMessage(hintText);
+    		hintDialog.show(getFragmentManager(), "");
     	}
+    }
+    
+    public void resetGuess() {
+		hint.setText(R.string.button_hint);
+		guess = false;
     }
     
     public void scrollLeft(View view) {
@@ -53,11 +69,6 @@ public class Game extends Activity {
     
     public void scrollRight(View view) {
     	game.scroll(0, 1);
-    }
-    
-    public void resetGuess() {
-		hint.setText(R.string.button_hint);
-		guess = false;
     }
 
 }
