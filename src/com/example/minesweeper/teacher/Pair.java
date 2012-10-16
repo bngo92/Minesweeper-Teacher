@@ -1,10 +1,10 @@
 package com.example.minesweeper.teacher;
 
-public class Pair {
-	int first;
-	int second;
+public class Pair<T1, T2> {
+	T1 first;
+	T2 second;
 	
-	public Pair(int x, int y) {
+	public Pair(T1 x, T2 y) {
 		first = x;
 		second = y;
 	}

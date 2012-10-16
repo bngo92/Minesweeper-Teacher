@@ -23,8 +23,8 @@ public class Tile {
 		mState = State.NONE;
 	}
 	
-	public Pair getCoords() {
-		return new Pair(mR, mC);
+	public Pair<Integer, Integer> getCoords() {
+		return new Pair<Integer, Integer>(mR, mC);
 	}
 	
 	public int getMines() {
