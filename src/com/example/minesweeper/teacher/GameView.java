@@ -549,7 +549,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					
 					int success = 0;
 					String s = "";
-					//int mine_difference = countMines(r, c) - countMines(rr, cc);
 					if (countMines(r, c) == tile_unique.size() + countMines(rr, cc)) {
 						/*
 						 * 1?		1?
@@ -577,14 +576,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							queue.push(t);
 							success++;
 						}
-					}/* else if (countMines(r, c) == countMines(rr, cc)) {
-						s = "not mines";
-						for (Tile t: splitNeighbors(subtile_neighbors, tile_neighbors)) {
-							t.setState(State.REVEAL);
-							queue.push(t);
-							success++;
-						}
-					}*/
+					}
 					if (success != 0) {
 						scrollToHint(r, c);
 						return String.format("(%d,%d) and (%d,%d) share %d mines across %d tiles." +
@@ -600,18 +592,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		
 		/*
 		 * TODO:
-		 * 1?		1?		1?		1F
-		 * 2?	->	2?	->	2R	->	2R
-		 * 1?		1F		1F		1F
-		 * 
 		 * 01?		01?
 		 * 12?	->	12?
 		 * ???		??R
-		 * 
-		 * 3?		3?
-		 * 1?	->	1?
-		 * 2?		2?
-		 * 1?		1F
 		 */
 		public String tripleAlgorithm(int r, int c) {
 			Tile tile = getTile(r, c);
