@@ -2,7 +2,9 @@ package com.example.minesweeper.teacher;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
+import android.view.View.OnLongClickListener;
 import android.view.Window;
 import android.widget.Button;
 
@@ -11,6 +13,8 @@ public class Game extends Activity {
 	Button hint;
 	boolean guess;
 	HintDialog hintDialog;
+	Handler mTimer;
+	int delay = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -23,15 +27,43 @@ public class Game extends Activity {
 		game.initGame(this);
 		resetGuess();
 		game.newGame();
+		
 		hintDialog = new HintDialog();
+		mTimer = new Handler();
+		hint.setOnLongClickListener(new OnLongClickListener() {
+
+			public boolean onLongClick(View v) {
+				mTimer.post(solve);
+				return true;
+			}
+			
+		});
     }
     
+	Runnable solve = new Runnable() {
+		public void run() {
+			String s = game.hint();
+			if (s != null && s != "guess") {
+				mTimer.postDelayed(reveal, delay);
+			}
+		}
+	};
+	
+	Runnable reveal = new Runnable() {
+		public void run() {
+			game.hint();
+			mTimer.postDelayed(solve, delay);
+		}
+	};
+	
     public void newGame(View view) {
     	resetGuess();
     	game.newGame();
     }
     
     public void hint(View view) {
+    	mTimer.removeCallbacks(solve);
+    	mTimer.removeCallbacks(reveal);
     	if (guess) {
     		game.hint();
     		resetGuess();
@@ -45,7 +77,7 @@ public class Game extends Activity {
     		hint.setText(R.string.button_guess);
     		guess = true;
     	} else {
-    		hintDialog.setMessage(hintText);
+    		hintDialog.setMessage(this, hintText);
     		hintDialog.show(getFragmentManager(), "");
     	}
     }
