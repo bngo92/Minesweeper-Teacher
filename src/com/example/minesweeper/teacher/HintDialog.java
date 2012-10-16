@@ -7,9 +7,11 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 
 public class HintDialog extends DialogFragment {
+	Game game;
 	String message;
 	
-	public void setMessage(String m) {
+	public void setMessage(Game g, String m) {
+		game = g;
 		message = m;
 	}
 	
@@ -20,12 +22,12 @@ public class HintDialog extends DialogFragment {
 		builder.setMessage(message)
 		.setPositiveButton("OK", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int id) {
-				//
+				game.game.hint();
 			}
 		})
 		.setNegativeButton("Undo", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int id) {
-				// 
+				game.game.clearQueue(game);
 			}
 		});
 		// Create the AlertDialog object and return it
