@@ -29,6 +29,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private int offset_row;
 	private int offset_col;
 	private LinkedList<Tile> queue;
+	private ArrayList<Pair<Tile, Tile>> pairs;
 	
 	private ArrayList<ArrayList<Tile>> mGrid;	
 	private ArrayList<Tile> mMines;
@@ -86,11 +87,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		this.setOnTouchListener(new OnTouchListener() {
 
 			public boolean onTouch(View v, MotionEvent event) {
-				while (!queue.isEmpty()) {
-					Tile tile = queue.pop();
-					tile.setState(State.NONE);
-				}
-				parent.resetGuess();
+				parent.mTimer.removeCallbacks(parent.solve);
+				parent.mTimer.removeCallbacks(parent.reveal);
+				clearQueue(parent);
 				
 				// Store x and y coordinates for the following listener
 				mR = (int) event.getY() / size + offset_row;
@@ -148,18 +147,18 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				tile.reset();
 		
 		// Randomize location of mines
-		ArrayList<Pair> grid = new ArrayList<Pair>(height * width);
+		ArrayList<Pair<Integer, Integer>> grid = new ArrayList<Pair<Integer, Integer>>(height * width);
 		for (int r = 0; r < height; r++) {
 			for (int c = 0; c < width; c++) {
-				grid.add(new Pair(r, c));
+				grid.add(new Pair<Integer, Integer>(r, c));
 			}
 		}
 		
 		Collections.shuffle(grid);
 		for (int i = 0; i < mines; i++) {
-			Pair p = grid.get(i);
-			mGrid.get(p.first).get(p.second).setMine();
-			mMines.add(mGrid.get(p.first).get(p.second));
+			Pair<Integer, Integer> p = grid.get(i);
+			getTile(p.first, p.second).setMine();
+			mMines.add(getTile(p.first, p.second));
 		}
 		
 		// Update mine count
@@ -244,7 +243,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		if (!queue.isEmpty()) {
 			while (!queue.isEmpty()) {
 				Tile tile = queue.pop();
-				Pair coords = tile.getCoords();
+				Pair<Integer, Integer> coords = tile.getCoords();
 				switch (tile.getState()) {
 				case REVEAL:
 					reveal(coords.first, coords.second);
@@ -275,6 +274,19 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				hint = pairAlgorithm(r, c);
 				if (hint != null)
 					return hint;
+				//hint = tripleAlgorithm(r, c);
+				if (hint != null)
+					return hint;
+			}
+		}
+		for (int r = 0; r < height-1; r++) {
+			for (int c = 0; c < width-1; c++) {
+				Tile tile = getTile(r, c);
+				for (int rr = r; rr < r+2; rr++) {
+					for (int cc = c; cc < c+2; cc++) {
+						
+					}
+				}
 			}
 		}
 		guess();
@@ -289,17 +301,18 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		}
 		
 		// Build candidates for guessing
-		ArrayList<Pair> a = new ArrayList<Pair>(height * width);
+		ArrayList<Pair<Integer, Integer>> a = new ArrayList<Pair<Integer, Integer>>(height * width);
 		for (int r = 0; r < height; r++)
 			for (int c = 0; c < width; c++)
 				if (!mGrid.get(r).get(c).isRevealed() && 
 						!mGrid.get(r).get(c).isFlagged())
-					a.add(new Pair(r, c));
+					a.add(new Pair<Integer, Integer>(r, c));
 		
 		Random rand = new Random();
 		int n = rand.nextInt(a.size());
-		int r = a.get(n).first;
-		int c = a.get(n).second;
+		Pair<Integer, Integer> p = a.get(n);
+		int r = p.first;
+		int c = p.second;
 
 		scrollToHint(r, c);
 		mGrid.get(r).get(c).setState(State.REVEAL);
@@ -364,11 +377,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		int id;
 		if (tile.getState() != State.NONE) {
 			id = R.drawable.miner;
-		} else if (!tile.isRevealed()) {
-			if (tile.isFlagged())
+		} else if (tile.isFlagged()) {
+			if (!mActive && !tile.isMine()) {
+				id = R.drawable.miner;
+			} else {
 				id = R.drawable.minef;
-			else
-				id = R.drawable.mined;
+			}
+		} else if (!tile.isRevealed()) {
+			id = R.drawable.mined;
 		} else
 			switch (tile.getMines()) {
 			case 0: id = R.drawable.mine0; break;
@@ -414,6 +430,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		return mGrid.get(r).get(c);
 	}
 	
+	public void clearQueue(Game parent) {
+		while (!queue.isEmpty()) {
+			Tile tile = queue.pop();
+			tile.setState(State.NONE);
+		}
+		parent.resetGuess();
+	}
+	
 	//public class Hint {
 		/* 1. Check if the number of adjacent mines equals the number of adjacent flags
 		 * Uncover them.
@@ -435,7 +459,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			queue.push(tile);
 			
 			scrollToHint(r, c);
-			return String.format("(%d,%d) has %d mines and %d flags.", r, c, tile.getMines(), tile.getMines());
+			return String.format("(%d,%d) has %d mines and %d flags." +
+					"Reveal the remaining tiles.", r, c, tile.getMines(), tile.getMines());
 		}
 
 		/* 2. Check if the number of adjacent mines equals the number of uncovered tiles
@@ -476,7 +501,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			}
 			if (success) {
 				scrollToHint(r, c);
-				return String.format("(%d,%d) has %d mines and %d uncovered tiles.", r, c, tile.getMines(), tile.getMines());
+				return String.format("(%d,%d) has %d remaining mines and %d remaining tiles. " +
+						"Flag them all.", r, c, tile.getMines(), tile.getMines());
 			}
 			return null;
 		}
@@ -501,8 +527,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				return null;
 			
 			ArrayList<Tile> tile_neighbors = getUnrevealedNeighbors(r, c);
-			for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, height); rr++) {
-				for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, width); cc++) {
+			for (int rr = Math.max(r-2, 0); rr < Math.min(r+3, height); rr++) {
+				for (int cc = Math.max(c-2, 0); cc < Math.min(c+3, width); cc++) {
 					
 					if (rr == r && cc == c)
 						continue;
@@ -515,14 +541,21 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 						continue;
 					
 					ArrayList<Tile> subtile_neighbors = getUnrevealedNeighbors(rr, cc);
-					ArrayList<Tile> tile_unique = removeSubset(tile_neighbors, subtile_neighbors);
+					Pair<ArrayList<Tile>, ArrayList<Tile>> neighbors = splitNeighbors(tile_neighbors, subtile_neighbors);
+					ArrayList<Tile> tile_shared = neighbors.first;
+					ArrayList<Tile> tile_unique = neighbors.second;
 					if (tile_unique.isEmpty())
 						continue;
 					
 					int success = 0;
 					String s = "";
-					int mine_difference = countMines(r, c) - countMines(rr, cc);
-					if (mine_difference == tile_unique.size()) {
+					//int mine_difference = countMines(r, c) - countMines(rr, cc);
+					if (countMines(r, c) == tile_unique.size() + countMines(rr, cc)) {
+						/*
+						 * 1?		1?
+						 * 2?	->	2?
+						 * 2?		2F
+						 */
 						s = "mines";
 						for (Tile t: tile_unique) {
 							if (t.isFlagged()) 
@@ -532,19 +565,31 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 							queue.push(t);
 							success++;
 						}
-					} else if (countMines(r, c) == countMines(rr, cc) && mine_difference < tile_unique.size()) {
+					} else if (tile_shared.containsAll(subtile_neighbors) && countMines(r, c) == countMines(rr, cc)) {
+						/*
+						 * 1?		1?
+						 * 1?	->	1?
+						 * 2?		2R
+						 */
 						s = "not mines";
 						for (Tile t: tile_unique) {
 							t.setState(State.REVEAL);
 							queue.push(t);
 							success++;
 						}
-					}
+					}/* else if (countMines(r, c) == countMines(rr, cc)) {
+						s = "not mines";
+						for (Tile t: splitNeighbors(subtile_neighbors, tile_neighbors)) {
+							t.setState(State.REVEAL);
+							queue.push(t);
+							success++;
+						}
+					}*/
 					if (success != 0) {
 						scrollToHint(r, c);
-						return String.format("(%d,%d) and (%d,%d) share %d tiles." +
+						return String.format("(%d,%d) and (%d,%d) share %d mines across %d tiles." +
 								"The remaining %d are %s.", 
-								r, c, rr, cc, 
+								r, c, rr, cc, countMines(rr, cc),
 								subtile_neighbors.size(),
 								success, s);
 					}
@@ -552,7 +597,72 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			}
 			return null;
 		}
-
+		
+		/*
+		 * TODO:
+		 * 1?		1?		1?		1F
+		 * 2?	->	2?	->	2R	->	2R
+		 * 1?		1F		1F		1F
+		 * 
+		 * 01?		01?
+		 * 12?	->	12?
+		 * ???		??R
+		 * 
+		 * 3?		3?
+		 * 1?	->	1?
+		 * 2?		2?
+		 * 1?		1F
+		 */
+		public String tripleAlgorithm(int r, int c) {
+			Tile tile = getTile(r, c);
+			if (tile.isZero() || 
+					tile.isFlagged() || 
+					!tile.isRevealed() ||
+					countUnrevealed(r, c) == 0)
+				return null;
+			
+			ArrayList<Tile> candidates = getRevealedNeighbors(r, c);
+			ArrayList<Tile> tile_neighbors = getUnrevealedNeighbors(r, c);
+			for (int i = 0; i < candidates.size(); i++) {
+				for (int j = i+1; j < candidates.size(); j++) {
+					Pair<Integer, Integer> tile1_coords = candidates.get(i).getCoords();
+					Pair<Integer, Integer> tile2_coords = candidates.get(j).getCoords();
+					if ((countMines(r, c) - countMines(tile1_coords.first, tile1_coords.second) -
+							countMines(tile2_coords.first, tile2_coords.second)) != 0)
+						continue;
+						
+					ArrayList<Tile> tile1_neighbors = getUnrevealedNeighbors(tile1_coords.first, tile1_coords.second);
+					ArrayList<Tile> tile2_neighbors = getUnrevealedNeighbors(tile2_coords.first, tile2_coords.second);
+					
+					for (Tile t: tile1_neighbors) {
+						if (tile2_neighbors.contains(t))
+							continue;
+					}
+					for (Tile t: tile2_neighbors) {
+						if (tile1_neighbors.contains(t))
+							continue;
+					}
+					
+					ArrayList<Tile> a = new ArrayList<Tile>();
+					for (Tile t: tile_neighbors) {
+						if (!tile1_neighbors.contains(t) && !tile2_neighbors.contains(t))
+							a.add(t);
+					}
+					if (a.isEmpty()) {
+						continue;
+					}
+					for (Tile t: a) {
+						t.setState(State.REVEAL);
+						queue.push(t);
+						return String.format("(%d,%d) and (%d,%d) have taken all of (%d,%d)'s mines." +
+								"The remaining locations are clear.", tile1_coords.first, tile1_coords.second,
+								tile2_coords.first, tile2_coords.second, r, c);
+					}
+				}
+			}
+			return null;
+		}
+		
 		private int countRevealed(int r, int c) {
 			int count = 0;
 			for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, height); rr++) {
@@ -589,15 +699,32 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			return getTile(r, c).getMines() - countFlags(r, c);
 		}	
 		
+		private ArrayList<Tile> getRevealedNeighbors(int r, int c) {
+			ArrayList<Tile> a = new ArrayList<Tile>();
+
+			for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, height); rr++) {
+				for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, width); cc++) {
+					if (rr == r && cc == c)
+						continue;
+					
+					Tile tile = getTile(rr, cc);
+					if (tile.isRevealed() && !tile.isZero())
+						a.add(tile);
+				}
+			}
+			
+			return a;
+		}
+		
 		private ArrayList<Tile> getUnrevealedNeighbors(int r, int c) {
 			ArrayList<Tile> a = new ArrayList<Tile>();
 
-			for (int i = Math.max(r-1, 0); i < Math.min(r+2, height); i++) {
-				for (int j = Math.max(c-1, 0); j < Math.min(c+2, width); j++) {
-					if (i == r && j == c)
+			for (int rr = Math.max(r-1, 0); rr < Math.min(r+2, height); rr++) {
+				for (int cc = Math.max(c-1, 0); cc < Math.min(c+2, width); cc++) {
+					if (rr == r && cc == c)
 						continue;
 					
-					Tile tile = getTile(i, j);
+					Tile tile = getTile(rr, cc);
 					if (!tile.isRevealed() && !tile.isFlagged())
 						a.add(tile);
 				}
@@ -606,18 +733,20 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			return a;
 		}
 		
-		private ArrayList<Tile> removeSubset(final ArrayList<Tile> a1, ArrayList<Tile> a2) {
-			if (a2.size() > a1.size())
-				return new ArrayList<Tile>();
+		private Pair<ArrayList<Tile>, ArrayList<Tile>> splitNeighbors(final ArrayList<Tile> a1, ArrayList<Tile> a2) {
+			//if (a2.size() > a1.size())
+				//return new ArrayList<Tile>();
+			ArrayList<Tile> shared = new ArrayList<Tile>();
+			ArrayList<Tile> unique = new ArrayList<Tile>();
 			
-			for (Tile tile : a2) {
-				if (a1.contains(tile))
-					a1.remove(tile);
+			for (Tile tile : a1) {
+				if (a2.contains(tile))
+					shared.add(tile);
 				else
-					return new ArrayList<Tile>();
+					unique.add(tile);
 			}
 			
-			return a1;
+			return new Pair<ArrayList<Tile>, ArrayList<Tile>>(shared, unique);
 		}
 		
 		public void scrollToHint(int r, int c) {
