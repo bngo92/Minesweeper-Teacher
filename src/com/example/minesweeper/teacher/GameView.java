@@ -193,6 +193,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 		tile.reveal();
 		if (tile.isMine()) {
+			tile.setState(State.EXPLODE);
 			mTimer.stopTimer();
 			mActive = false;
 			for (Tile mine : mMines)
@@ -370,21 +371,23 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 	
 	public Bitmap getBitmap() {
-		return mBitmap.getBitmap(R.drawable.mine);
+		return mBitmap.getBitmap(R.drawable.def);
 	}
 	
 	public Bitmap getBitmap(Tile tile) {
 		int id;
-		if (tile.getState() != State.NONE) {
+		if (tile.getState() == State.EXPLODE) {
+			id = R.drawable.mine_clicked;
+		} else if (tile.getState() != State.NONE) {
 			id = R.drawable.miner;
 		} else if (tile.isFlagged()) {
 			if (!mActive && !tile.isMine()) {
 				id = R.drawable.miner;
 			} else {
-				id = R.drawable.minef;
+				id = R.drawable.flag;
 			}
 		} else if (!tile.isRevealed()) {
-			id = R.drawable.mined;
+			id = R.drawable.unknown;
 		} else
 			switch (tile.getMines()) {
 			case 0: id = R.drawable.mine0; break;

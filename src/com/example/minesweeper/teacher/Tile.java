@@ -7,7 +7,7 @@ public class Tile {
 	private boolean mRevealed;
 	private boolean mFlagged;
 	
-	public enum State { NONE, REVEAL, REVEAL_SURROUNDING, FLAG };
+	public enum State { NONE, REVEAL, REVEAL_SURROUNDING, FLAG, EXPLODE };
 	private State mState;
 	
 	public Tile(int r, int c) {
