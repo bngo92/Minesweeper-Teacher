@@ -18,6 +18,7 @@ import android.widget.TextView;
 import com.example.minesweeper.teacher.Tile.State;
 
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
+	private Game parent;
 	private GameThread mThread;
 	private BitmapCache mBitmap;
 	private Timer mTimer;
@@ -38,6 +39,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private int size;
 	
 	private int mCount;
+	private int mFlagCount;
 	private boolean mStart;
 	private boolean mActive;
 
@@ -46,6 +48,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	
 	TextView tvtime;
 	TextView tvcount;
+	VictoryDialog victoryDialog;
 	
 	public GameView(Context context) {
 		super(context);
@@ -60,12 +63,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 
 	public void initGame(final Game parent) {
+		this.parent = parent;
 		int[] gameSize = parent.getIntent().getExtras().getIntArray("size");
 		height = gameSize[0];
 		width = gameSize[1];
 		mines = gameSize[2];
 		tvtime = (TextView) parent.findViewById(R.id.textViewTime);
 		tvcount = (TextView) parent.findViewById(R.id.textViewCount);
+		victoryDialog = (VictoryDialog) parent.victoryDialog;
 		
 		getHolder().addCallback(this);
 		mThread = new GameThread(this);
@@ -115,7 +120,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		this.setOnLongClickListener(new OnLongClickListener() {
 
 			public boolean onLongClick(View v) {
-				mGrid.get(mR).get(mC).toggleFlag();
+				flag(mGrid.get(mR).get(mC));
 				return true;
 			}
 			
@@ -177,6 +182,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		}
 
 		mCount = height * width - mines;
+		mFlagCount = 0;
 		mActive = true;
 		mStart = false;
 		
@@ -231,6 +237,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		return count;
 	}
 	
+	public void flag(Tile tile) {
+		mFlagCount += tile.toggleFlag();
+		updateCount();
+	}
+	
 	public String hint() {
 		// Start time during the first touch
 		if (!mStart) {
@@ -253,7 +264,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 					revealSurrounding(coords.first, coords.second);
 					break;
 				case FLAG:
-					tile.setFlag(true);
+					flag(tile);
 					break;
 				default:
 					break;
@@ -421,16 +432,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 	
 	public void updateCount() {
-		int count = 0;
-		for (int r = 0; r < height; r++)
-			for (int c = 0; c < width; c++)
-				if (mGrid.get(r).get(c).isFlagged())
-					count++;
-		tvcount.setText(mCount + "/" + count);
+		tvcount.setText(mCount + "/" + mFlagCount);
 		
 		if (mCount == 0) {
 			mTimer.stopTimer();
 			mActive = false;
+    		victoryDialog.setMessage("You win!\nTime: " + mTimer.getTime());
+    		victoryDialog.show(parent.getFragmentManager(), "");
 		}
 	}
 	

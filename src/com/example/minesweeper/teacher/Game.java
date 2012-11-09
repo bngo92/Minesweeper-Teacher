@@ -13,6 +13,7 @@ public class Game extends Activity {
 	Button hint;
 	boolean guess;
 	HintDialog hintDialog;
+	VictoryDialog victoryDialog;
 	Handler mTimer;
 	int delay = 0;
 
@@ -24,6 +25,7 @@ public class Game extends Activity {
 		
 		game = (GameView) findViewById(R.id.gameView1);
 		hint = (Button) findViewById(R.id.button_hint);
+		victoryDialog = new VictoryDialog();
 		game.initGame(this);
 		resetGuess();
 		game.newGame();

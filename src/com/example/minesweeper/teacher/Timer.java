@@ -27,7 +27,7 @@ public class Timer extends Handler {
 	private Runnable updateTimer = new Runnable() {
 		public void run() {	
 			mMillis += UPDATE_TIME;
-			textView.setText(String.format("%.2f", mMillis/1000.));
+			textView.setText(getTime());
 			postDelayed(updateTimer, UPDATE_TIME);
 		}
 	};
@@ -36,5 +36,9 @@ public class Timer extends Handler {
 		removeCallbacks(updateTimer);
 		mMillis = 0;
 		textView.setText("0.00");
+	}
+	
+	public String getTime() {
+		return String.format("%.2f", mMillis/1000.);
 	}
 }

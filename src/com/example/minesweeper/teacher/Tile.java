@@ -51,10 +51,13 @@ public class Tile {
 		mFlagged = b;
 	}
 	
-	public void toggleFlag() {
+	public int toggleFlag() {
 		if (mRevealed)
-			return;
+			return 0;
 		mFlagged = !mFlagged;
+		if (mFlagged)
+			return 1;
+		return -1;
 	}
 	
 	public void reveal() {
