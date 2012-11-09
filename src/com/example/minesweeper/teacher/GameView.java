@@ -421,7 +421,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 	
 	public void updateCount() {
-		tvcount.setText("Tiles Left: " + mCount);
+		int count = 0;
+		for (int r = 0; r < height; r++)
+			for (int c = 0; c < width; c++)
+				if (mGrid.get(r).get(c).isFlagged())
+					count++;
+		tvcount.setText(mCount + "/" + count);
 		
 		if (mCount == 0) {
 			mTimer.stopTimer();
