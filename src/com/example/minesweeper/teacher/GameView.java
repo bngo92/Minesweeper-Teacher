@@ -64,10 +64,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 	public void initGame(final Game parent) {
 		this.parent = parent;
-		int[] gameSize = parent.getIntent().getExtras().getIntArray("size");
-		height = gameSize[0];
-		width = gameSize[1];
-		mines = gameSize[2];
+		height = parent.getIntent().getExtras().getInt("height");
+		width = parent.getIntent().getExtras().getInt("width");
+		mines = parent.getIntent().getExtras().getInt("mines");
 		tvtime = (TextView) parent.findViewById(R.id.textViewTime);
 		tvcount = (TextView) parent.findViewById(R.id.textViewCount);
 		victoryDialog = (VictoryDialog) parent.victoryDialog;
