@@ -9,15 +9,21 @@
     <string name="title_activity_game">Game</string>
     <string name="button_new">New Game</string>
     <string name="button_difficulty">Difficulty</string>
-    <string-array name="button_difficulties">
-        <item>Beginner</item>
-        <item>Intermediate</item>
-        <item>Advanced</item>
-    </string-array>
     <string name="button_guess">Guess</string>
     <string name="button_learn">Learn</string>
     <string name="difficulty_beginner">Beginner</string>
     <string name="difficulty_intermediate">Intermediate</string>
     <string name="difficulty_advanced">Advanced</string>
+    <string name="strategy_1_2">The 1&#8211;2</string>
+    <string name="startegy_1_1">The 1&#8211;1</string>
+    <string name="startegy_1_2_2_1">The 1&#8211;2&#8211;2&#8211;1</string>
+    <string name="startegy_1_2_1">The 1&#8211;2&#8211;1</string>
+    <string name="startegy_1_3_1">The 1&#8211;3&#8211;1&#8211;Corner</string>
+    <string name="startegy_1_1_triangle">The 1&#8211;1 Triangle</string>
+    <string name="startegy_2_2_triangle">The 2&#8211;2 Triangle</string>
+    <string name="startegy_3_3_triangle">The 3&#8211;3 Triangle</string>
+    <string name="startegy_1_2_pyramid">The 1&#8211;2 Pyramid</string>
+    <string name="startegy_2_3_pyramid">The 2&#8211;3 Pyramid</string>
+    <string name="Options">button_options</string>
 
 </resources>

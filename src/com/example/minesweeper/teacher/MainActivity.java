@@ -20,8 +20,10 @@ public class MainActivity extends Activity {
     
     public void pickDifficulty(View v) {
         PopupMenu popup = new PopupMenu(this, v);
-        final Context context = this;
+        MenuInflater inflater = popup.getMenuInflater();
+        inflater.inflate(R.menu.menu_difficulty, popup.getMenu());
         
+        final Context context = this;        
         popup.setOnMenuItemClickListener(new OnMenuItemClickListener() {
         	
 			@Override
@@ -59,8 +61,52 @@ public class MainActivity extends Activity {
 			}
         });
         
+        popup.show();
+    }
+    
+    public void pickStrategy(View v) {
+        PopupMenu popup = new PopupMenu(this, v);
         MenuInflater inflater = popup.getMenuInflater();
-        inflater.inflate(R.menu.menu_difficulty, popup.getMenu());
+        inflater.inflate(R.menu.menu_strategy, popup.getMenu());
+        
+        final Context context = this;
+        popup.setOnMenuItemClickListener(new OnMenuItemClickListener() {
+        	
+			@Override
+			public boolean onMenuItemClick(MenuItem item) {
+        		int height;
+        		int width;
+        		int mines;
+        		
+            	switch (item.getItemId()) {
+    	        	case R.id.difficulty_beginner:
+    	        		height = 8;
+    	        		width = 8;
+    	        		mines = 10;
+    	        		break;
+    	        	case R.id.difficulty_intermediate:
+    	        		height = 16;
+    	        		width = 16;
+    	        		mines = 40;
+    	        		break;
+    	        	case R.id.difficulty_advanced:
+    	        		height = 16;
+    	        		width = 30;
+    	        		mines = 99;
+    	        		break;
+    	    		default:
+    	    			return false;
+            	}
+            	
+            	Intent intent = new Intent(context, Game.class);
+            	intent.putExtra("height", height);
+            	intent.putExtra("width", width);
+            	intent.putExtra("mines", mines);
+            	startActivity(intent);
+            	return true;
+			}
+        });
+        
         popup.show();
     }
     

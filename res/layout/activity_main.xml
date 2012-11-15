@@ -18,6 +18,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/button_learn"
-        android:onClick="pickStrat" />
+        android:onClick="pickStrategy" />
+
+    <Button
+        android:id="@+id/button3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/button_options" />
 
 </LinearLayout>

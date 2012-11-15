@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    
+    <group android:id="@+id/group1"><item android:id="@+id/strategy_1_2" android:title="@string/strategy_1_2"></item>
+        <item android:id="@+id/strategy_1_1" android:title="@string/startegy_1_1"></item>
+        <item android:id="@+id/strategy_1_2_2_1" android:title="@string/startegy_1_2_2_1"></item>
+        <item android:id="@+id/strategy_1_2_1" android:title="@string/startegy_1_2_1"></item>
+        <item android:id="@+id/strategy_1_3_1" android:title="@string/startegy_1_3_1"></item>
+    </group>
+    <group android:id="@+id/group2">
+        <item android:id="@+id/strategy_1_1_triangle" android:title="@string/startegy_1_1_triangle"></item>
+        <item android:id="@+id/strategy_2_2_triangle" android:title="@string/startegy_2_2_triangle"></item>
+        <item android:id="@+id/strategy_3_3_triangle" android:title="@string/startegy_3_3_triangle"></item>
+        <item android:id="@+id/strategy_1_2_pyramid" android:title="@string/startegy_1_2_pyramid"></item>
+        <item android:id="@+id/strategy_2_3_pyramid" android:title="@string/startegy_2_3_pyramid"></item>
+    </group>
+    
+
+</menu>
