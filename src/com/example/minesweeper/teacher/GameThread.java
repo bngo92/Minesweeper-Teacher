@@ -3,6 +3,11 @@ package com.example.minesweeper.teacher;
 import android.graphics.Canvas;
 import android.view.SurfaceHolder;
 
+/**
+ * Thread for drawing and updating the canvas.
+ * @author Bryan
+ *
+ */
 public class GameThread extends Thread {
 	private GameView mGameView;
 	private SurfaceHolder mHolder;

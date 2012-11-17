@@ -5,7 +5,12 @@ import android.app.Dialog;
 import android.app.DialogFragment;
 import android.content.DialogInterface;
 import android.os.Bundle;
-
+/**
+ * Simple alert dialog with a positive and negative button. 
+ * Used for deciding whether to proceed with the hint or not.
+ * @author Bryan
+ *
+ */
 public class HintDialog extends DialogFragment {
 	Game game;
 	String message;
@@ -22,12 +27,12 @@ public class HintDialog extends DialogFragment {
 		builder.setMessage(message)
 		.setPositiveButton("OK", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int id) {
-				game.game.hint();
+				game.gameView.hint();
 			}
 		})
 		.setNegativeButton("Undo", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int id) {
-				game.game.clearQueue(game);
+				game.gameView.clearHintQueue();
 			}
 		});
 		// Create the AlertDialog object and return it

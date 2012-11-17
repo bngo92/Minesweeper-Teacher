@@ -6,6 +6,12 @@ import android.app.DialogFragment;
 import android.content.DialogInterface;
 import android.os.Bundle;
 
+/**
+ * Simple alert dialog with a positive button. 
+ * Used for displaying a message when the game is won.
+ * @author Bryan
+ *
+ */
 public class VictoryDialog extends DialogFragment {
 	String message;
 	

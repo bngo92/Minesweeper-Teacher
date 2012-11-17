@@ -10,6 +10,11 @@ import android.view.View;
 import android.widget.PopupMenu;
 import android.widget.PopupMenu.OnMenuItemClickListener;
 
+/**
+ * Main menu of the application.
+ * @author Bryan
+ *
+ */
 public class MainActivity extends Activity {
 
     @Override
@@ -18,6 +23,10 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
     }
     
+    /**
+     * Initialize game with chosen difficulty settings.
+     * @param v
+     */
     public void pickDifficulty(View v) {
         PopupMenu popup = new PopupMenu(this, v);
         MenuInflater inflater = popup.getMenuInflater();
@@ -64,6 +73,10 @@ public class MainActivity extends Activity {
         popup.show();
     }
     
+    /**
+     * Pick a strategy to load.
+     * @param v
+     */
     public void pickStrategy(View v) {
         PopupMenu popup = new PopupMenu(this, v);
         MenuInflater inflater = popup.getMenuInflater();

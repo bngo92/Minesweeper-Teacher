@@ -76,7 +76,7 @@
     <com.example.minesweeper.teacher.GameView
         android:id="@+id/gameView1"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="wrap_content"  
         android:layout_above="@+id/LinearLayoutBot"
         android:layout_alignParentLeft="true"
         android:layout_alignParentRight="true"
