@@ -45,6 +45,7 @@ public class Game extends Activity {
 
 			/** Start automatic solver when hint button is long clicked. */
 			public boolean onLongClick(View v) {
+				run = true;
 				hintTimer.post(findHint);
 				return true;
 			}
@@ -64,10 +65,9 @@ public class Game extends Activity {
 		 * Queues found actions after delay. 
 		 */
 		public void run() {
-			String s = gameView.hint();
-			if (s != null && s != GUESS) {
-				hintTimer.postDelayed(processHint, delay);
-			}
+			run = true;
+			hint(null);
+			hintTimer.postDelayed(processHint, delay);
 		}
 	};
 	
@@ -77,16 +77,21 @@ public class Game extends Activity {
 		 * Queues finding more actions to be performed after delay. 
 		 */
 		public void run() {
-			gameView.hint();
-			hintTimer.postDelayed(findHint, delay);
+				hint(null);
+			if (run) {
+				hintTimer.postDelayed(findHint, delay);
+			}
 		}
 	};
+	private boolean run;
 	
 	/**
 	 * Resets UI elements and game state.
 	 * @param view
 	 */
     public void newGame(View view) {
+    	hintTimer.removeCallbacks(findHint);
+    	hintTimer.removeCallbacks(processHint);
     	resetGuess();
     	gameView.newGame();
     }
@@ -103,6 +108,10 @@ public class Game extends Activity {
     public void hint(View view) {
     	hintTimer.removeCallbacks(findHint);
     	hintTimer.removeCallbacks(processHint);
+    	
+    	if (gameView.gameOver) {
+    		run = false;
+    	}
 
     	// Try processing hint queue
     	if (gameView.processHintQueue())
@@ -117,12 +126,13 @@ public class Game extends Activity {
     	
     	String hintText = gameView.hint();
     	if (hintText == null) {
+    		stop();
     		return;
-    	} else if (hintText == GUESS) {
+    	} else if (!run && hintText == GUESS) {
     		// Set hint button to guess state
     		hint.setText(R.string.button_guess);
     		guess = true;
-    	} else {
+    	} else if (!run) {
     		hintDialog.setMessage(this, hintText);
     		hintDialog.show(getFragmentManager(), "");
     	}
@@ -150,4 +160,9 @@ public class Game extends Activity {
     	gameView.scroll(0, 1);
     }
 
+    public void stop() {
+    	run = false;
+    	hintTimer.removeCallbacks(findHint);
+    	hintTimer.removeCallbacks(processHint);
+    }
 }

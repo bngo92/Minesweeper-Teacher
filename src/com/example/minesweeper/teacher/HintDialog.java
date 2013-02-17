@@ -27,7 +27,7 @@ public class HintDialog extends DialogFragment {
 		builder.setMessage(message)
 		.setPositiveButton("OK", new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int id) {
-				game.gameView.hint();
+				game.gameView.processHintQueue();
 			}
 		})
 		.setNegativeButton("Undo", new DialogInterface.OnClickListener() {

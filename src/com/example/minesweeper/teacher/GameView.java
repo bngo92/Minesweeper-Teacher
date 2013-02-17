@@ -40,7 +40,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private int count;
 	private int flagCount;
 	/** True until game is over from clicking on a mine or winning.*/
-	private boolean gameOver;
+	boolean gameOver;
 
 	private int mR;
 	private int mC;
@@ -133,7 +133,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		this.setOnClickListener(new OnClickListener() {
 
 			public void onClick(View v) {
-				click(mR, mC);
+				gameClick(mR, mC);
 			}
 			
 		});
@@ -154,6 +154,15 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		// Update text views
 		gameTimer.resetTimer();
 		updateCount();
+	}
+	
+	public void gameClick(int r, int c) {
+		parent.stop();
+		click(r, c);
+	}
+	
+	public void hintClick(int r, int c) {
+		click(r, c);
 	}
 
 	/**
@@ -201,7 +210,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			gameTimer.startTimer();
 		}
 		
-		if (!gameOver)
+		if (gameOver)
 			return null;
 		
 		String hint = mGrid.findHint(hintQueue);
@@ -223,7 +232,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			TileAction tileAction = hintQueue.pop();
 			switch (tileAction.action) {
 				case CLICK:
-					click(tileAction.r, tileAction.c);
+					hintClick(tileAction.r, tileAction.c);
 					break;
 				case FLAG:
 					flag(tileAction.r, tileAction.c);
@@ -256,10 +265,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		
 		int n = rand.nextInt(candidates.size());
 		Pair<Integer, Integer> guess = candidates.get(n);
-		int r = guess.first;
-		int c = guess.second;
-
-		hintQueue.push(new TileAction(r, c, TileAction.Action.CLICK));
+		gameClick(guess.first, guess.second);
 		return;
 	}
 	
