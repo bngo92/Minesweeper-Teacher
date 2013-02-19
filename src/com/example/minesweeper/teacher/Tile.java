@@ -3,9 +3,11 @@ package com.example.minesweeper.teacher;
 /**
  * Tile Object
  * 
- * <p>Holds various states of a tile
+ * <p>
+ * Holds various states of a tile
+ * 
  * @author Bryan
- *
+ * 
  */
 public class Tile {
 	private int mR;
@@ -15,19 +17,21 @@ public class Tile {
 	private boolean mFlagged;
 	private boolean mExploded;
 	private boolean mHighlighted;
-	
-	/** 
+
+	/**
 	 * Constructor.
 	 * 
-	 * @param r (required) row of tile
-	 * @param c (required) column of tile
+	 * @param r
+	 *            (required) row of tile
+	 * @param c
+	 *            (required) column of tile
 	 */
 	public Tile(int r, int c) {
 		mR = r;
 		mC = c;
 		reset();
 	}
-	
+
 	/** Reset states to default. */
 	public void reset() {
 		mRevealed = false;
@@ -36,42 +40,42 @@ public class Tile {
 		mHighlighted = false;
 		mMines = 0;
 	}
-	
+
 	/** Return row and column coordinates. */
 	public Pair<Integer, Integer> getCoords() {
 		return new Pair<Integer, Integer>(mR, mC);
 	}
-	
+
 	/** Return count of surrounding mines */
 	public int getMines() {
 		return mMines;
 	}
-	
+
 	/** Return if mine was clicked */
 	public boolean isExploded() {
 		return mExploded;
 	}
-	
+
 	/** Explode mine. */
 	public void explode() {
 		mExploded = true;
 	}
-	
+
 	/** Set mine underneath tile. */
 	public void setMine() {
 		mMines = -1;
 	}
-	
+
 	/** Update number of surrounding mines. */
 	public void updateMines(int mines) {
 		mMines = mines;
 	}
-	
+
 	/**
 	 * Toggles flag if tile has not been revealed yet.
-	 * @return 0 if flag can't be toggled,
-	 * 1 if tile is now flagged, 
-	 * -1 if tile is now unflagged
+	 * 
+	 * @return 0 if flag can't be toggled, 1 if tile is now flagged, -1 if tile
+	 *         is now unflagged
 	 */
 	public int toggleFlag() {
 		if (mRevealed)
@@ -81,11 +85,11 @@ public class Tile {
 			return 1;
 		return -1;
 	}
-	
+
 	/**
 	 * Reveals tile
-	 * @return 0 if already revealed,
-	 * 1 if newly revealed
+	 * 
+	 * @return 0 if already revealed, 1 if newly revealed
 	 */
 	public int reveal() {
 		if (mRevealed)
@@ -103,7 +107,7 @@ public class Tile {
 			return true;
 		return false;
 	}
-	
+
 	/**
 	 * 
 	 * @return if tile is not surrounded by any mines
@@ -113,7 +117,7 @@ public class Tile {
 			return true;
 		return false;
 	}
-	
+
 	/**
 	 * 
 	 * @return if tile has been revealed
@@ -121,7 +125,7 @@ public class Tile {
 	public boolean isRevealed() {
 		return mRevealed;
 	}
-	
+
 	/**
 	 * 
 	 * @return if tile has been flagged
@@ -129,7 +133,7 @@ public class Tile {
 	public boolean isFlagged() {
 		return mFlagged;
 	}
-	
+
 	/**
 	 * 
 	 * @return if tile has been highlighted
@@ -137,9 +141,9 @@ public class Tile {
 	public boolean isHighlighted() {
 		return mHighlighted;
 	}
-	
+
 	public void setHighlighted(boolean highlighted) {
 		mHighlighted = highlighted;
 	}
-	
+
 }
