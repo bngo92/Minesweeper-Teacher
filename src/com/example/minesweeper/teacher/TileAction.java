@@ -11,13 +11,11 @@ public class TileAction {
 		CLICK, FLAG
 	};
 
-	int r;
-	int c;
+	Tile tile;
 	Action action;
 
-	public TileAction(int r, int c, Action action) {
-		this.r = r;
-		this.c = c;
-		this.action = action;
+	public TileAction(Tile t, Action a) {
+		tile = t;
+		action = a;
 	}
 }

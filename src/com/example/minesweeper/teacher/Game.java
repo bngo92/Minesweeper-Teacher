@@ -78,7 +78,7 @@ public class Game extends Activity {
 		 * after delay.
 		 */
 		public void run() {
-			if (gameView.processHintQueue() && !gameView.gameOver) {
+			if (gameView.processHints() && !gameView.gameOver) {
 				hintTimer.postDelayed(findHint, delay);
 			}
 		}
@@ -154,7 +154,7 @@ public class Game extends Activity {
 	public void stopHints() {
 		hintTimer.removeCallbacks(findHint);
 		hintTimer.removeCallbacks(processHint);
-		gameView.clearHintQueue();
+		gameView.clearHints();
 	}
 
 }

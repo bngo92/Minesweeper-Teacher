@@ -2,7 +2,6 @@ package com.example.minesweeper.teacher;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 
 /**
  * Container of Tile objects.
@@ -244,7 +243,7 @@ public class Grid {
 	}
 
 	/** Do not process hints. */
-	public String findHint(LinkedList<TileAction> queue) {
+	public String findHint(ArrayList<TileAction> array) {
 		// TODO Auto-generated method stub
 		return null;
 	}

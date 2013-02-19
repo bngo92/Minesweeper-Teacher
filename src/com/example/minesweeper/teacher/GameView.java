@@ -1,7 +1,6 @@
 package com.example.minesweeper.teacher;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.Random;
 
 import android.content.Context;
@@ -31,7 +30,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	private int maxWidth;
 	private int offset_row;
 	private int offset_col;
-	private LinkedList<TileAction> hintQueue;
+	private ArrayList<TileAction> hintList;
 
 	private Grid mGrid;
 
@@ -85,7 +84,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		gameTimer = new Timer(textViewTime);
 		bitmapCache = new BitmapCache(getResources());
 		tileSize = bitmapCache.getBitmap(R.drawable.mine).getWidth();
-		hintQueue = new LinkedList<TileAction>();
+		hintList = new ArrayList<TileAction>();
 
 		mGrid = new HintGrid(height, width, mines);
 		gameOver = true;
@@ -195,11 +194,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	}
 
 	/**
-	 * If hints are queued, process them. Otherwise, try to queue hints. If no
-	 * hints are found, indicate to caller that you should guess.
+	 * Searches grid for hint.
 	 * 
-	 * @return null if game is not active or hints are queued, Game.GUESS if
-	 *         hint could not be found, hint tooltip text
+	 * @return null if hint could not be found, otherwise hint tooltip text
 	 */
 	public String hint() {
 		// Start timer if hint button is pressed
@@ -207,7 +204,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			gameTimer.startTimer();
 		}
 
-		return mGrid.findHint(hintQueue);
+		String s = mGrid.findHint(hintList);
+		for (TileAction tileAction : hintList)
+			tileAction.tile.setHighlighted(true);
+		return s;
 	}
 
 	/**
@@ -216,28 +216,33 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	 * 
 	 * @return true if a hint was performed, false if not
 	 */
-	public boolean processHintQueue() {
-		if (hintQueue.isEmpty())
+	public boolean processHints() {
+		if (hintList.isEmpty())
 			return false;
 
-		while (!hintQueue.isEmpty()) {
-			TileAction tileAction = hintQueue.pop();
+		for (TileAction tileAction : hintList) {
+			Pair<Integer, Integer> coords = tileAction.tile.getCoords();
+			int r = coords.first;
+			int c = coords.second;
 			switch (tileAction.action) {
 			case CLICK:
-				click(tileAction.r, tileAction.c);
+				click(r, c);
 				break;
 			case FLAG:
-				flag(tileAction.r, tileAction.c);
+				flag(r, c);
 				break;
 			}
-			scrollTo(tileAction.r, tileAction.c);
+			scrollTo(r, c);
 		}
+		clearHints();
 		return true;
 	}
 
 	/** Call method when automatic solver is stopped to notify parent Game. */
-	public void clearHintQueue() {
-		hintQueue.clear();
+	public void clearHints() {
+		for (TileAction tileAction : hintList)
+			tileAction.tile.setHighlighted(false);
+		hintList.clear();
 	}
 
 	/**
@@ -337,7 +342,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				id = R.drawable.flag;
 			}
 		} else if (!tile.isRevealed()) {
-			id = R.drawable.unknown;
+			if (tile.isHighlighted())
+				id = R.drawable.miner;
+			else
+				id = R.drawable.unknown;
 		} else
 			switch (tile.getMines()) {
 			case -1:
@@ -382,15 +390,15 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		for (int r = 0; r < Math.min(height, maxHeight + 1); r++) {
 			if (r + offset_row >= height) {
 				for (int c = 0; c < Math.min(width, maxWidth + 1); c++)
-					canvas.drawBitmap(getDefaultBitmap(), c * tileSize, r * tileSize,
-							null);
+					canvas.drawBitmap(getDefaultBitmap(), c * tileSize, r
+							* tileSize, null);
 				break;
 			}
 			ArrayList<Tile> row = grid.get(r + offset_row);
 			for (int c = 0; c < Math.min(width, maxWidth + 1); c++) {
 				if (c + offset_col >= width) {
-					canvas.drawBitmap(getDefaultBitmap(), c * tileSize, r * tileSize,
-							null);
+					canvas.drawBitmap(getDefaultBitmap(), c * tileSize, r
+							* tileSize, null);
 					break;
 				}
 				Tile tile = row.get(c + offset_col);

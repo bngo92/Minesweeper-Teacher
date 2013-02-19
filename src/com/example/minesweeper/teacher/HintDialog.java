@@ -29,13 +29,13 @@ public class HintDialog extends DialogFragment {
 		builder.setMessage(message)
 				.setPositiveButton("OK", new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface dialog, int id) {
-						game.gameView.processHintQueue();
+						game.gameView.processHints();
 					}
 				})
 				.setNegativeButton("Undo",
 						new DialogInterface.OnClickListener() {
 							public void onClick(DialogInterface dialog, int id) {
-								game.gameView.clearHintQueue();
+								game.gameView.clearHints();
 							}
 						});
 		// Create the AlertDialog object and return it

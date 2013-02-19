@@ -26,7 +26,7 @@ public class HintGrid extends Grid {
 	}
 
 	/** Breadth first search through grid for hint. */
-	public String findHint(LinkedList<TileAction> queue) {
+	public String findHint(ArrayList<TileAction> queue) {
 		int r = lastClicked.first;
 		int c = lastClicked.second;
 		String hint = hint(queue, r, c);
@@ -98,7 +98,7 @@ public class HintGrid extends Grid {
 	 * Checks location if any hint can be performed. Adds hint to queue if
 	 * found.
 	 * 
-	 * @param queue
+	 * @param array
 	 *            Queue to add hint to
 	 * @param r
 	 *            row of tile to check
@@ -106,14 +106,14 @@ public class HintGrid extends Grid {
 	 *            column of tile to check
 	 * @return <li>hint text output from the detecting algorithm
 	 */
-	public String hint(LinkedList<TileAction> queue, int r, int c) {
-		String hint = revealAlgorithm(queue, r, c);
+	public String hint(ArrayList<TileAction> array, int r, int c) {
+		String hint = revealAlgorithm(array, r, c);
 		if (hint != null)
 			return hint;
-		hint = flagAlgorithm(queue, r, c);
+		hint = flagAlgorithm(array, r, c);
 		if (hint != null)
 			return hint;
-		hint = pairAlgorithm(queue, r, c);
+		hint = pairAlgorithm(array, r, c);
 		if (hint != null)
 			return hint;
 		// hint = tripleAlgorithm(r, c);
@@ -125,7 +125,7 @@ public class HintGrid extends Grid {
 	/**
 	 * Check if the number of adjacent mines equals the number of adjacent flags
 	 * 
-	 * @param hintQueue
+	 * @param array
 	 *            queue to populate with hint tiles
 	 * @param r
 	 *            row of tile
@@ -133,13 +133,13 @@ public class HintGrid extends Grid {
 	 *            column of tile
 	 * @return hint text
 	 */
-	public String revealAlgorithm(LinkedList<TileAction> hintQueue, int r, int c) {
+	public String revealAlgorithm(ArrayList<TileAction> array, int r, int c) {
 		Tile tile = getTile(r, c);
 		if (!tile.isRevealed() || tile.isZero() || countRevealed(r, c) == 0
 				|| countUnrevealed(r, c) == 0 || countMines(r, c) != 0)
 			return null;
 
-		hintQueue.push(new TileAction(r, c, Action.CLICK));
+		array.add(new TileAction(tile, Action.CLICK));
 
 		return String.format(Locale.getDefault(),
 				"(%d,%d) has %d mines and %d flags."
@@ -159,7 +159,7 @@ public class HintGrid extends Grid {
 	 *            column of tile
 	 * @return hint text
 	 */
-	public String flagAlgorithm(LinkedList<TileAction> queue, int r, int c) {
+	public String flagAlgorithm(ArrayList<TileAction> array, int r, int c) {
 		Tile tile = getTile(r, c);
 		if (tile.isZero() || tile.isFlagged() || !tile.isRevealed())
 			return null;
@@ -180,7 +180,7 @@ public class HintGrid extends Grid {
 				if (subtile.isRevealed() || subtile.isFlagged())
 					continue;
 
-				queue.push(new TileAction(rr, cc, TileAction.Action.FLAG));
+				array.add(new TileAction(subtile, TileAction.Action.FLAG));
 				success = true;
 			}
 		}
@@ -208,7 +208,7 @@ public class HintGrid extends Grid {
 	 * 
 	 * @return hint text
 	 */
-	public String pairAlgorithm(LinkedList<TileAction> queue, int r, int c) {
+	public String pairAlgorithm(ArrayList<TileAction> array, int r, int c) {
 		Tile tile = getTile(r, c);
 		if (tile.isZero() || tile.isFlagged() || !tile.isRevealed()
 				|| countUnrevealed(r, c) == 0)
@@ -246,8 +246,7 @@ public class HintGrid extends Grid {
 						if (t.isFlagged())
 							continue;
 
-						Pair<Integer, Integer> coords = t.getCoords();
-						queue.push(new TileAction(coords.first, coords.second,
+						array.add(new TileAction(t,
 								TileAction.Action.FLAG));
 						success++;
 					}
@@ -258,8 +257,7 @@ public class HintGrid extends Grid {
 					 */
 					s = "not mines";
 					for (Tile t : tile_unique) {
-						Pair<Integer, Integer> coords = t.getCoords();
-						queue.push(new TileAction(coords.first, coords.second,
+						array.add(new TileAction(t,
 								TileAction.Action.CLICK));
 						success++;
 					}
@@ -322,8 +320,7 @@ public class HintGrid extends Grid {
 					continue;
 				}
 				for (Tile t : a) {
-					Pair<Integer, Integer> coords = t.getCoords();
-					queue.push(new TileAction(coords.first, coords.second,
+					queue.push(new TileAction(t,
 							TileAction.Action.CLICK));
 					return String.format(Locale.getDefault(),
 							"(%d,%d) and (%d,%d) have taken all of (%d,%d)'s mines."
