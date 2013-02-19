@@ -96,6 +96,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			public boolean onTouch(View v, MotionEvent event) {
 				// Turn off automatic solver
 				parent.stopHints();
+				parent.resetGuess();
 
 				// Ignore touch if game has ended
 				if (gameOver)

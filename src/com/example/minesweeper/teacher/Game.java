@@ -78,7 +78,7 @@ public class Game extends Activity {
 		 * after delay.
 		 */
 		public void run() {
-			if (gameView.processHintQueue()) {
+			if (gameView.processHintQueue() && !gameView.gameOver) {
 				hintTimer.postDelayed(findHint, delay);
 			}
 		}

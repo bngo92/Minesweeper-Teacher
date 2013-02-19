@@ -13,20 +13,84 @@ import com.example.minesweeper.teacher.TileAction.Action;
  * 
  */
 public class HintGrid extends Grid {
+	Pair<Integer, Integer> lastClicked;
 
 	public HintGrid(int height, int width, int mines) {
 		super(height, width, mines);
+		lastClicked = new Pair<Integer, Integer>(0, 0);
 	}
 
-	/** Linear search through grid for hint. */
+	public int click(int r, int c) {
+		lastClicked = new Pair<Integer, Integer>(r, c);
+		return super.click(r, c);
+	}
+
+	/** Breadth first search through grid for hint. */
 	public String findHint(LinkedList<TileAction> queue) {
-		for (int r = 0; r < height; r++) {
-			for (int c = 0; c < width; c++) {
-				String hint = hint(queue, r, c);
-				if (hint != null)
-					return hint;
+		int r = lastClicked.first;
+		int c = lastClicked.second;
+		String hint = hint(queue, r, c);
+		if (hint != null)
+			return hint;
+
+		int n = 1;
+		boolean found;
+		do {
+			found = false;
+			r = lastClicked.first - n;
+			c = lastClicked.second - n;
+			if (r >= 0) {
+				for (int i = 0; i < 2 * n; i++) {
+					int cc = c + i;
+					if (cc < 0 || cc >= width)
+						continue;
+					found = true;
+					hint = hint(queue, r, cc);
+					if (hint != null)
+						return hint;
+				}
 			}
-		}
+			r = lastClicked.first - n;
+			c = lastClicked.second + n;
+			if (c < width) {
+				for (int i = 0; i < 2 * n; i++) {
+					int rr = r + i;
+					if (rr < 0 || rr >= height)
+						continue;
+					found = true;
+					hint = hint(queue, rr, c);
+					if (hint != null)
+						return hint;
+				}
+			}
+			r = lastClicked.first + n;
+			c = lastClicked.second + n;
+			if (r < height) {
+				for (int i = 0; i < 2 * n; i++) {
+					int cc = c - i;
+					if (cc < 0 || cc >= width)
+						continue;
+					found = true;
+					hint = hint(queue, r, cc);
+					if (hint != null)
+						return hint;
+				}
+			}
+			r = lastClicked.first + n;
+			c = lastClicked.second - n;
+			if (c >= 0) {
+				for (int i = 0; i < 2 * n; i++) {
+					int rr = r - i;
+					if (rr < 0 || rr >= height)
+						continue;
+					found = true;
+					hint = hint(queue, rr, c);
+					if (hint != null)
+						return hint;
+				}
+			}
+			n++;
+		} while (found);
 		return null;
 	}
 
@@ -121,7 +185,7 @@ public class HintGrid extends Grid {
 			}
 		}
 		if (success) {
-			return String.format(
+			return String.format(Locale.getDefault(),
 					"(%d,%d) has %d remaining mines and %d remaining tiles. "
 							+ "Flag them all.", r, c, tile.getMines(),
 					tile.getMines());
@@ -201,7 +265,7 @@ public class HintGrid extends Grid {
 					}
 				}
 				if (success != 0) {
-					return String.format(
+					return String.format(Locale.getDefault(),
 							"(%d,%d) and (%d,%d) share %d mines across %d tiles."
 									+ "The remaining %d are %s.", r, c, rr, cc,
 							countMines(rr, cc), subtile_neighbors.size(),
@@ -261,7 +325,7 @@ public class HintGrid extends Grid {
 					Pair<Integer, Integer> coords = t.getCoords();
 					queue.push(new TileAction(coords.first, coords.second,
 							TileAction.Action.CLICK));
-					return String.format(
+					return String.format(Locale.getDefault(),
 							"(%d,%d) and (%d,%d) have taken all of (%d,%d)'s mines."
 									+ "The remaining locations are clear.",
 							tile1_coords.first, tile1_coords.second,
