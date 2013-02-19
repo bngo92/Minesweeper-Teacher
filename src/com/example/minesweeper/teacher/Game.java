@@ -47,7 +47,6 @@ public class Game extends Activity {
 
 			/** Start automatic solver when hint button is long clicked. */
 			public boolean onLongClick(View v) {
-				run = true;
 				hintTimer.post(findHint);
 				return true;
 			}
@@ -55,8 +54,8 @@ public class Game extends Activity {
 		});
 
 		gameView.initGame(this);
-		resetGuess();
-		gameView.newGame();
+		
+		newGame(null);
 	}
 
 	Runnable findHint = new Runnable() {
@@ -68,9 +67,8 @@ public class Game extends Activity {
 		 * delay.
 		 */
 		public void run() {
-			run = true;
-			hint(null);
-			hintTimer.postDelayed(processHint, delay);
+			if (gameView.hint() != null)
+				hintTimer.postDelayed(processHint, delay);
 		}
 	};
 
@@ -80,22 +78,17 @@ public class Game extends Activity {
 		 * after delay.
 		 */
 		public void run() {
-			hint(null);
-			if (run) {
+			if (gameView.processHintQueue()) {
 				hintTimer.postDelayed(findHint, delay);
 			}
 		}
 	};
-	private boolean run;
 
 	/**
 	 * Resets UI elements and game state.
-	 * 
-	 * @param view
 	 */
 	public void newGame(View view) {
-		hintTimer.removeCallbacks(findHint);
-		hintTimer.removeCallbacks(processHint);
+		stopHints();
 		resetGuess();
 		gameView.newGame();
 	}
@@ -109,39 +102,31 @@ public class Game extends Activity {
 	 * <p>
 	 * Cancels automatic solver if active.
 	 * 
-	 * @param view
+	 * @return If hint was found
 	 */
-	public void hint(View view) {
-		hintTimer.removeCallbacks(findHint);
-		hintTimer.removeCallbacks(processHint);
+	public boolean handleHint(View view) {
 
 		if (gameView.gameOver) {
-			run = false;
+			return false;
 		}
-
-		// Try processing hint queue
-		if (gameView.processHintQueue())
-			return;
 
 		// Guess if guess state has been previously set
 		if (guess) {
 			gameView.guess();
 			resetGuess();
-			return;
+			return true;
 		}
 
 		String hintText = gameView.hint();
 		if (hintText == null) {
-			stop();
-			return;
-		} else if (!run && hintText == GUESS) {
 			// Set hint button to guess state
 			hint.setText(R.string.button_guess);
 			guess = true;
-		} else if (!run) {
+		} else {
 			hintDialog.setMessage(this, hintText);
 			hintDialog.show(getFragmentManager(), "");
 		}
+		return true;
 	}
 
 	/** Reset hint button text and turn off guessing. */
@@ -165,10 +150,11 @@ public class Game extends Activity {
 	public void scrollRight(View view) {
 		gameView.scroll(0, 1);
 	}
-
-	public void stop() {
-		run = false;
+	
+	public void stopHints() {
 		hintTimer.removeCallbacks(findHint);
 		hintTimer.removeCallbacks(processHint);
+		gameView.clearHintQueue();
 	}
+
 }

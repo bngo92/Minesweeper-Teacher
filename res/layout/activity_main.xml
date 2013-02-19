@@ -5,20 +5,20 @@
     android:layout_height="wrap_content"
     android:layout_gravity="center"
     android:orientation="vertical" >
-
+
     <Button
         android:id="@+id/button1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/button_play"
-        android:onClick="pickDifficulty" />
-
+        android:onClick="pickDifficulty"
+        android:text="@string/button_play" />
+
     <Button
         android:id="@+id/button2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/button_learn"
-        android:onClick="pickStrategy" />
+        android:onClick="pickStrategy"
+        android:text="@string/button_learn" />
 
     <Button
         android:id="@+id/button3"

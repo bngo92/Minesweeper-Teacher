@@ -35,7 +35,7 @@ public class BitmapCache {
 	 * @return <li>The decoded bitmap of the corresponding image id
 	 */
 	public Bitmap getBitmap(int id) {
-		if (map.get(id) != null)
+		if (map.get(id) == null)
 			map.put(id, BitmapFactory.decodeResource(res, id));
 		return map.get(id);
 	}

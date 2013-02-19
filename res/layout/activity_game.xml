@@ -20,8 +20,8 @@
             android:id="@+id/button1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="newGame"
             android:layout_centerInParent="true"
+            android:onClick="newGame"
             android:text="@string/button_new" />
 
         <TextView
@@ -44,39 +44,42 @@
             android:id="@+id/button_hint"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="hint"
-            android:text="@string/button_hint" />
+            android:onClick="handleHint"
+            android:text="@string/button_hint" />
+
         <Button
             android:id="@+id/button3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="scrollLeft"
-            android:text="L" />
+            android:text="L" />
+
         <Button
             android:id="@+id/button4"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="scrollDown"
-            android:text="D" />
+            android:text="D" />
+
         <Button
             android:id="@+id/button5"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="scrollUp"
-            android:text="U" />
+            android:text="U" />
+
         <Button
             android:id="@+id/button6"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="scrollRight"
             android:text="R" />
-
     </LinearLayout>
 
     <com.example.minesweeper.teacher.GameView
         android:id="@+id/gameView1"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"  
+        android:layout_height="wrap_content"
         android:layout_above="@+id/LinearLayoutBot"
         android:layout_alignParentLeft="true"
         android:layout_alignParentRight="true"

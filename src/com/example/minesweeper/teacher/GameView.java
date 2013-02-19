@@ -8,7 +8,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.util.AttributeSet;
-import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -40,7 +39,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 	private int count;
 	private int flagCount;
-	/** True until game is over from clicking on a mine or winning. */
+	/** False until game is over from clicking on a mine or winning. */
 	boolean gameOver;
 
 	private int mR;
@@ -89,15 +88,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		hintQueue = new LinkedList<TileAction>();
 
 		mGrid = new HintGrid(height, width, mines);
+		gameOver = true;
 
 		// Handle input events
 		this.setOnTouchListener(new OnTouchListener() {
 
 			public boolean onTouch(View v, MotionEvent event) {
 				// Turn off automatic solver
-				gameTimer.removeCallbacks(parent.findHint);
-				gameTimer.removeCallbacks(parent.processHint);
-				clearHintQueue();
+				parent.stopHints();
 
 				// Ignore touch if game has ended
 				if (gameOver)
@@ -127,7 +125,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		this.setOnLongClickListener(new OnLongClickListener() {
 
 			public boolean onLongClick(View v) {
-				v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+				// v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
 				flag(mR, mC);
 				return true;
 			}
@@ -137,7 +135,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		this.setOnClickListener(new OnClickListener() {
 
 			public void onClick(View v) {
-				gameClick(mR, mC);
+				click(mR, mC);
 			}
 
 		});
@@ -145,6 +143,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 	/** Reset and randomizes grid and resets counters and timers. */
 	public void newGame() {
+		// Ignore if game hasn't started yet
+		if (!gameTimer.isOn() && !gameOver)
+			return;
+
 		// Reset position
 		offset_row = 0;
 		offset_col = 0;
@@ -160,15 +162,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		updateCount();
 	}
 
-	public void gameClick(int r, int c) {
-		parent.stop();
-		click(r, c);
-	}
-
-	public void hintClick(int r, int c) {
-		click(r, c);
-	}
-
 	/**
 	 * Clicks grid at location. If mine is clicked, stop game. Update counter.
 	 * 
@@ -178,9 +171,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	 *            column of tile
 	 */
 	public void click(int r, int c) {
-		if (gameOver)
-			return;
-
 		count = mGrid.click(r, c);
 		if (count == -1) {
 			gameTimer.stopTimer();
@@ -216,14 +206,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			gameTimer.startTimer();
 		}
 
-		if (gameOver)
-			return null;
-
-		String hint = mGrid.findHint(hintQueue);
-		if (hint != null)
-			return hint;
-
-		return Game.GUESS;
+		return mGrid.findHint(hintQueue);
 	}
 
 	/**
@@ -240,7 +223,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 			TileAction tileAction = hintQueue.pop();
 			switch (tileAction.action) {
 			case CLICK:
-				hintClick(tileAction.r, tileAction.c);
+				click(tileAction.r, tileAction.c);
 				break;
 			case FLAG:
 				flag(tileAction.r, tileAction.c);
@@ -254,7 +237,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	/** Call method when automatic solver is stopped to notify parent Game. */
 	public void clearHintQueue() {
 		hintQueue.clear();
-		parent.resetGuess();
 	}
 
 	/**
@@ -262,11 +244,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	 * queue.
 	 */
 	public void guess() {
-		// Start time during the first touch
-		if (!gameTimer.isOn()) {
-			gameTimer.startTimer();
-		}
-
 		// Build candidates for guessing
 		ArrayList<Pair<Integer, Integer>> candidates = mGrid
 				.getGuessCandidates();
@@ -276,7 +253,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
 		int n = rand.nextInt(candidates.size());
 		Pair<Integer, Integer> guess = candidates.get(n);
-		gameClick(guess.first, guess.second);
+		click(guess.first, guess.second);
+		scrollTo(guess.first, guess.second);
 		return;
 	}
 
@@ -336,7 +314,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 	 * 
 	 * @return default Bitmap object
 	 */
-	public Bitmap getBitmap() {
+	public Bitmap getDefaultBitmap() {
 		return bitmapCache.getBitmap(R.drawable.def);
 	}
 
@@ -403,14 +381,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		for (int r = 0; r < Math.min(height, maxHeight + 1); r++) {
 			if (r + offset_row >= height) {
 				for (int c = 0; c < Math.min(width, maxWidth + 1); c++)
-					canvas.drawBitmap(getBitmap(), c * tileSize, r * tileSize,
+					canvas.drawBitmap(getDefaultBitmap(), c * tileSize, r * tileSize,
 							null);
 				break;
 			}
 			ArrayList<Tile> row = grid.get(r + offset_row);
 			for (int c = 0; c < Math.min(width, maxWidth + 1); c++) {
 				if (c + offset_col >= width) {
-					canvas.drawBitmap(getBitmap(), c * tileSize, r * tileSize,
+					canvas.drawBitmap(getDefaultBitmap(), c * tileSize, r * tileSize,
 							null);
 					break;
 				}
