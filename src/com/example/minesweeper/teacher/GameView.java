@@ -207,6 +207,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		String s = mGrid.findHint(hintList);
 		for (TileAction tileAction : hintList)
 			tileAction.tile.setHighlighted(true);
+		if (!hintList.isEmpty()) {
+			Pair<Integer, Integer> coords = hintList.get(0).tile.getCoords();
+			scrollTo(coords.first, coords.second);
+		}
 		return s;
 	}
 
@@ -220,10 +224,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 		if (hintList.isEmpty())
 			return false;
 
+		int r = 0;
+		int c = 0;
 		for (TileAction tileAction : hintList) {
 			Pair<Integer, Integer> coords = tileAction.tile.getCoords();
-			int r = coords.first;
-			int c = coords.second;
+			r = coords.first;
+			c = coords.second;
 			switch (tileAction.action) {
 			case CLICK:
 				click(r, c);
@@ -232,8 +238,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 				flag(r, c);
 				break;
 			}
-			scrollTo(r, c);
 		}
+		scrollTo(r, c);
 		clearHints();
 		return true;
 	}

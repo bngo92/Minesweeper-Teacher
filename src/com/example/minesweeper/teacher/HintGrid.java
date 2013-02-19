@@ -26,10 +26,10 @@ public class HintGrid extends Grid {
 	}
 
 	/** Breadth first search through grid for hint. */
-	public String findHint(ArrayList<TileAction> queue) {
+	public String findHint(ArrayList<TileAction> array) {
 		int r = lastClicked.first;
 		int c = lastClicked.second;
-		String hint = hint(queue, r, c);
+		String hint = hint(array, r, c);
 		if (hint != null)
 			return hint;
 
@@ -45,7 +45,7 @@ public class HintGrid extends Grid {
 					if (cc < 0 || cc >= width)
 						continue;
 					found = true;
-					hint = hint(queue, r, cc);
+					hint = hint(array, r, cc);
 					if (hint != null)
 						return hint;
 				}
@@ -58,7 +58,7 @@ public class HintGrid extends Grid {
 					if (rr < 0 || rr >= height)
 						continue;
 					found = true;
-					hint = hint(queue, rr, c);
+					hint = hint(array, rr, c);
 					if (hint != null)
 						return hint;
 				}
@@ -71,7 +71,7 @@ public class HintGrid extends Grid {
 					if (cc < 0 || cc >= width)
 						continue;
 					found = true;
-					hint = hint(queue, r, cc);
+					hint = hint(array, r, cc);
 					if (hint != null)
 						return hint;
 				}
@@ -84,7 +84,7 @@ public class HintGrid extends Grid {
 					if (rr < 0 || rr >= height)
 						continue;
 					found = true;
-					hint = hint(queue, rr, c);
+					hint = hint(array, rr, c);
 					if (hint != null)
 						return hint;
 				}
